@@ -42,33 +42,31 @@ def get_srnd_cells(gscTuple):
             #retrieves the state of the above mentioned cell from today_grid and appends to gscOutput
             gscOutput.append(today_grid[gscOuterCell[0]][gscOuterCell[1]][gscOuterCell[2]])
         except:
+            #I (Connor) suspect that there are a few bugs in this code below.
             gscOutput.append('dead')
-            # print('open new chunk')
             gscCell = get_rltv_position(gscX, gscY)
             currCell = today_grid[gscCell[0]][gscCell[1]][gscCell[2]]
             if(currCell == "live"):  # Check if cell is live before doing chunk tests
-                needCell = (0,0)
-                if(gscX >= 7):
-                    needCell = (gscCell[0][0]+1, gscCell[0][1])
+                needCell = (0,0) #bug?  (Jedi) I don't think so, since this a hacky yet efficient way to check if the chunk needs opening
                 
-                if(gscX <= 0):
+                # gscCell values: ((currentChunkX, currentChunkY), cellX, cellY)
+                if(gscCell[1] > 7): #Bug: change gscX to gscCell[1] and repeat for all lines below. > 7 should not be possible. (Jedi) Fixed.  It worked, thanks! Before, it got stuck in the bottom right corner of (1,1)
+                    needCell = (gscCell[0][0]+1, gscCell[0][1])
+                elif(gscCell[1] < 0): #I, Connor, changed if to elif, for slight efficiency improvement. I did same once more below.
                     needCell = (gscCell[0][0]-1, gscCell[0][1])
                 
-                if(gscY <= 0):
+                if(gscCell[2] < 0):
                     needCell = (gscCell[0][0], gscCell[0][1]-1)
-                
-                if(gscY >= 7):
+                elif(gscCell[2] > 7):
                     needCell = (gscCell[0][0], gscCell[0][1]+1)
                 
                 # Add chunk if needed
                 if(needCell != (0,0)):
+                    #TODO create a list of newly opened chunks.  (Jedi) Why?
+                    #bug? will it try to create multiple chunks with the same key?
+                    #  It will just set the current key to a value,  possibly inefficient, but I think it would be more inefficient
+                    #  to search through all the chunks first.  This is the same method I used to prevent duplcates in Taxi.
                     tomorrow_grid[needCell] = [['dead'] * 8] * 8  # Initalize an empty chunk
-            
-            
-            #TODO (DONE) send request to open new chunk, but only if this cell is live.
-            #   get current side the cell is at (probably through gscPosition)
-            #   Compute the chunks that need to open
-            #   Append those chunks with their tuple key
     return gscOutput
 
 #Accepts state of a cell along with the states of its 8 neighbors; returns new state for cell.
@@ -84,10 +82,10 @@ def cell_next_day(cndCellState, cndSrndngCells):
 
 def print_chunk(chunk):
     for row in chunk:
-        processed = []
+        pcProcessed = [] #I, Connor, edited this variable name
         for c in row:
-            processed.append(1 if c == "live" else 0)
-        print(processed)
+            pcProcessed.append(1 if c == "live" else 0)
+        print(pcProcessed)
 
 def print_board(grid):
     for key,value in grid.items():
