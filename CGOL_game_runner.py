@@ -4,6 +4,7 @@
 import pprint #just for testing convenience
 import copy
 import time
+import json
 from CGOL_test_patterns import glider as pattern1
 
 #This is the master dictionary. It contains all open chunks on the grid. A chunk is an 8x8 square of cells on the grid.
@@ -43,7 +44,31 @@ def get_srnd_cells(gscTuple):
         except:
             gscOutput.append('dead')
             # print('open new chunk')
-            #TODO send request to open new chunk, but only if this cell is live.
+            gscCell = get_rltv_position(gscX, gscY)
+            currCell = today_grid[gscCell[0]][gscCell[1]][gscCell[2]]
+            if(currCell == "live"):  # Check if cell is live before doing chunk tests
+                needCell = (0,0)
+                if(gscX >= 7):
+                    needCell = (gscCell[0][0]+1, gscCell[0][1])
+                
+                if(gscX <= 0):
+                    needCell = (gscCell[0][0]-1, gscCell[0][1])
+                
+                if(gscY <= 0):
+                    needCell = (gscCell[0][0], gscCell[0][1]-1)
+                
+                if(gscY >= 7):
+                    needCell = (gscCell[0][0], gscCell[0][1]+1)
+                
+                # Add chunk if needed
+                if(needCell != (0,0)):
+                    tomorrow_grid[needCell] = [['dead'] * 8] * 8  # Initalize an empty chunk
+            
+            
+            #TODO (DONE) send request to open new chunk, but only if this cell is live.
+            #   get current side the cell is at (probably through gscPosition)
+            #   Compute the chunks that need to open
+            #   Append those chunks with their tuple key
     return gscOutput
 
 #Accepts state of a cell along with the states of its 8 neighbors; returns new state for cell.
@@ -56,6 +81,18 @@ def cell_next_day(cndCellState, cndSrndngCells):
         if cndLive == 3:
             return 'live'
     return 'dead'
+
+def print_chunk(chunk):
+    for row in chunk:
+        processed = []
+        for c in row:
+            processed.append(1 if c == "live" else 0)
+        print(processed)
+
+def print_board(grid):
+    for key,value in grid.items():
+        print(str(key)+":")
+        print_chunk(value)
 
 #TODO create day loop:
 while today_grid != {}:
@@ -71,8 +108,9 @@ while today_grid != {}:
     #this code below can either be at the front or the back of this loop. It prgresses the master dictionary to the next day.
     today_grid = copy.deepcopy(tomorrow_grid)
     tomorrow_grid = {}
-    # time.sleep(1)  # I (Jedi) added this to test the loop
-    # print(today_grid)
+    time.sleep(0.5)  # I (Jedi) added this to test the loop
+    print("\n\n")
+    print_board(today_grid)
 
 
 #Coding tip: Local variables do not have underscores and are prefixed by the name of their domain.
