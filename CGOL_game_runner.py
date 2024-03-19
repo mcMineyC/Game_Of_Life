@@ -50,14 +50,14 @@ def get_srnd_cells(gscTuple):
                 needCell = (0,0) #bug?  (Jedi) I don't think so, since this a hacky yet efficient way to check if the chunk needs opening
                 
                 # gscCell values: ((currentChunkX, currentChunkY), cellX, cellY)
-                if(gscCell[1] > 7): #Bug: change gscX to gscCell[1] and repeat for all lines below. > 7 should not be possible. (Jedi) Fixed.  It worked, thanks! Before, it got stuck in the bottom right corner of (1,1)
-                    needCell = (gscCell[0][0]+1, gscCell[0][1])
-                elif(gscCell[1] < 0): #I, Connor, changed if to elif, for slight efficiency improvement. I did same once more below.
+                if(gscCell[1] >= 7): #Bug: change gscX to gscCell[1] and repeat for all lines below. > 7 should not be possible. (Jedi) Fixed.  It worked, thanks! Before, it got stuck in the bottom right corner of (1,1)
+                    needCell = (gscCell[0][0]+1, gscCell[0][1]) # > 7 shouldn't be possible, but it breaks otherwise
+                elif(gscCell[1] <= 0): #I, Connor, changed if to elif, for slight efficiency improvement. I did same once more below.
                     needCell = (gscCell[0][0]-1, gscCell[0][1])
                 
-                if(gscCell[2] < 0):
+                if(gscCell[2] <= 0):
                     needCell = (gscCell[0][0], gscCell[0][1]-1)
-                elif(gscCell[2] > 7):
+                elif(gscCell[2] >= 7):
                     needCell = (gscCell[0][0], gscCell[0][1]+1)
                 
                 # Add chunk if needed
