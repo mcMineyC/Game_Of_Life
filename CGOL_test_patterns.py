@@ -15,6 +15,12 @@ glider = {(0, 0): [
     ['dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead'],
     ['dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead']]}
 
-gliderv = {
-    (0,0): rot90(rot90(rot90(glider[(0,0)])))
-}
+pattern2 = {(0, 0): [
+    ['dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead'], # (X == 0, Y == 0-7)
+    ['dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead'], # (X == 1, Y == 0-7)
+    ['dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead'], # (X == 2, Y == 0-7)
+    ['dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead'], # (X == 3, Y == 0-7)
+    ['dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead'],
+    ['dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead'],
+    ['dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead', 'dead'],
+    ['live', 'live', 'live', 'live', 'live', 'live', 'live', 'live']]}
