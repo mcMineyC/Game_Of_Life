@@ -6,6 +6,7 @@ import copy
 import time
 import json
 from CGOL_test_patterns import glider as pattern1
+from CGOL_test_patterns import gliderv as pattern2
 
 #This is the master dictionary. It contains all open chunks on the grid. A chunk is an 8x8 square of cells on the grid.
 #Each chunk is made up of a list matrix of cells.
@@ -15,10 +16,12 @@ from CGOL_test_patterns import glider as pattern1
 #left cell in a chunk is always (0, 0).
 #To retrieve a cell from today_grid, use the following format: today_grid[chunk][X][Y]
 today_grid = {(0, 0): [['dead'] * 8] * 8}
-today_grid = pattern1 #just for testing purposes
+# today_grid = pattern1 #just for testing purposes
+today_grid = pattern2
 #The today_grid stores the current state of every cell. The tomorrow_grid is filled every cycle as the game decides what the
 #next day will look like.
 tomorrow_grid = copy.deepcopy(today_grid)
+empty_count = {(0, 0): 0}
 
 #Converts relative position to absolute position. accepts X and Y of chunk, then X and Y of cell in chunk.
 def get_abs_position(gapChunk, gapX, gapY):
@@ -52,13 +55,13 @@ def get_srnd_cells(gscTuple):
                 # gscCell values: ((currentChunkX, currentChunkY), cellX, cellY)
                 if(gscCell[1] >= 7): #Bug: change gscX to gscCell[1] and repeat for all lines below. > 7 should not be possible. (Jedi) Fixed.  It worked, thanks! Before, it got stuck in the bottom right corner of (1,1)
                     needCell = (gscCell[0][0]+1, gscCell[0][1]) # > 7 shouldn't be possible, but it breaks otherwise
-                elif(gscCell[1] <= 0): #I, Connor, changed if to elif, for slight efficiency improvement. I did same once more below.
-                    needCell = (gscCell[0][0]-1, gscCell[0][1])
+                if(gscCell[1] <= 0): #I, Connor, changed if to elif, for slight efficiency improvement. I did same once more below.
+                    needCell = (gscCell[0][0]-1, gscCell[0][1]) # Change to elif works, but what if it needs to expand to both sides?
                 
+                if(gscCell[2] >= 7):
+                    needCell = (gscCell[0][0], gscCell[0][1]+1)
                 if(gscCell[2] <= 0):
                     needCell = (gscCell[0][0], gscCell[0][1]-1)
-                elif(gscCell[2] >= 7):
-                    needCell = (gscCell[0][0], gscCell[0][1]+1)
                 
                 # Add chunk if needed
                 if(needCell != (0,0)):
@@ -66,7 +69,10 @@ def get_srnd_cells(gscTuple):
                     #bug? will it try to create multiple chunks with the same key?
                     #  It will just set the current key to a value,  possibly inefficient, but I think it would be more inefficient
                     #  to search through all the chunks first.  This is the same method I used to prevent duplcates in Taxi.
-                    tomorrow_grid[needCell] = [['dead'] * 8] * 8  # Initalize an empty chunk
+                    if(not needCell in today_grid.keys()):
+                        tomorrow_grid[needCell] = [['dead'] * 8] * 8  # Initalize an empty chunk
+                    if(not needCell in empty_count.keys()):
+                        empty_count[needCell] = 0
     return gscOutput
 
 #Accepts state of a cell along with the states of its 8 neighbors; returns new state for cell.
@@ -89,18 +95,26 @@ def print_chunk(chunk):
 
 def print_board(grid):
     for key,value in grid.items():
-        print(str(key)+":")
+        print(str(key)+":\t"+str(empty_count[chunk])+"  # of ch. "+str(len(grid)))
         print_chunk(value)
 
 #TODO create day loop:
 while today_grid != {}:
     #begin building next day and assigning to tomorrow_grid:
     for chunk in today_grid.keys(): #iterates over every chunk key
+        if(today_grid[chunk] == [['dead'] * 8] * 8):
+            empty_count[chunk] += 1
+            if(empty_count[chunk] >= 5):
+                del empty_count[chunk]
+                continue
+        else:
+            empty_count[chunk] = 0
+
         tomorrow_grid[chunk] = []
         for Xcoord in range(8): #iterates over every X coordinate in chunk
             tomorrow_grid[chunk].append([])
             for Ycoord in range(8): #iterates over every Y coordinate
-               #add cell to tomorrow_grid;          getNewState;  state of current cell              states of surrounding cells
+                #add cell to tomorrow_grid;          getNewState;  state of current cell              states of surrounding cells
                 tomorrow_grid[chunk][Xcoord].append(cell_next_day(today_grid[chunk][Xcoord][Ycoord], get_srnd_cells(get_abs_position(chunk, Xcoord, Ycoord))))
     #TODO: Iterate over all cells in any new opened chunks.
     #this code below can either be at the front or the back of this loop. It prgresses the master dictionary to the next day.
