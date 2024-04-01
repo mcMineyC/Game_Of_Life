@@ -3,7 +3,7 @@
 
 import pprint #just for testing convenience
 import copy, json, time
-from CGOL_test_patterns import LWSSspaceship as pattern
+from CGOL_test_patterns import glider as pattern
 
 
 empty_chunk = [['dead'] * 8] * 8
@@ -136,7 +136,7 @@ while today_grid != {}:
     today_grid = copy.deepcopy(tomorrow_grid)
     tomorrow_grid = {}
     new_chunks = {}
-    time.sleep(0.1)
+    time.sleep(0.5)
     print(day)
     #print_board(today_grid)
     #pprint.pprint(today_grid)
