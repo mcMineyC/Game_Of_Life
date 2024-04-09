@@ -133,6 +133,13 @@ day = 0
 connor_print(copy.deepcopy(today_grid))
 while today_grid != {}:
 
+    print(day)
+    #print_board(today_grid)
+    #pprint.pprint(today_grid)
+    #connor_print(copy.deepcopy(today_grid))
+    pro_print_grid(copy.deepcopy(today_grid), (0, 4), (5, 0))
+    print("\n")
+
     #begin building next day and assigning to tomorrow_grid:
     is_new = False #cuts off unecessary processing in get_srnd_cells()
 
@@ -173,12 +180,7 @@ while today_grid != {}:
     tomorrow_grid = {}
     new_chunks = {}
     time.sleep(0.2)
-    print(day)
-    #print_board(today_grid)
-    #pprint.pprint(today_grid)
-    #connor_print(copy.deepcopy(today_grid))
-    pro_print_grid(copy.deepcopy(today_grid), (0, 4), (5, 0))
-    print("\n")
+
 
 
 
@@ -187,6 +189,6 @@ print('Grid is empty. Program ended.')
 
 
 #Coding tip: Local variables do not have underscores and are prefixed by the name of their domain.
-#TODO [I believe this task is completed] I have been frequently switching between using x and y as a single tuple and 
-#     x and y being separate. double check all code to make sure that functions are consistent.
+
 #TODO: Optimization: make loops shorter, e.g. use while instead of for. Remove unecessary variables. What else?
+#TODO speed test
