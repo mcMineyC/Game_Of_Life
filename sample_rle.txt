@@ -1,0 +1,5 @@
+x = 55, y = 41, rule = B3/S23
+2o20bobo15bo$13b2o7bobo2b3o10bo$13b2o8bo16bo6$21bo$20bobo$7b2o11bo2bo
+$6bo2bo11b2o$6bo2bo$7b2o3$4b2o$4b2o42bo$48bo$48bo5$11bo15bo$10bobo13b
+obo7bo$10bobo13bobo7bo$11bo15bo8bo3$19b2o$19b2o$15b2o$15b2o$49b2o$48b
+o2bo$49b2o4$34bo!

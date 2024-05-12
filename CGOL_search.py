@@ -1,6 +1,9 @@
 #This program searches the lexicon for patterns and saves them to the master library.
 #It also accepts a "human" grid and converts it the the "computer" format.
 
+#TODO code func that converts RLE to txt
+#TODO test run everything in search and txt convert
+
 import re, json, pprint, copy
 
 lexicon_file = open("Game_Of_Life/lexicon.txt", 'r')
@@ -16,7 +19,7 @@ grid_regex = re.compile('((\t[\*\.]{2,}\n)+)')#findall() works, but adds an extr
 line_regex = re.compile('\t([\*\.]{2,})\n') #only matches patterns whose live/dead characters are */.
 
 
-#this function essentially reverses the pro_print_grid() function.
+#Converts plaintext pattern to list matrix pattern
 def convert_format(cfGrid):
     global line_regex
 
