@@ -17,6 +17,15 @@ def status():
 @cross_origin()
 def get_patterns():
     print("Sending patterns")
+    pats = []
+    return json.dumps({
+        'patterns': pats
+    })
+
+@app.route('/lexicon/get')
+@cross_origin()
+def get_patterns():
+    print("Sending lexicon")
     pats = json.load(open('lexicon_list.json'))
     return json.dumps({
         'patterns': pats
