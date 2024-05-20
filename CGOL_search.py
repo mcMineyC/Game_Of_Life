@@ -164,6 +164,7 @@ def comment_to_dict(ctdInput):
     print(ctdTheComment)
     ctdCommentItems = comment_items_regex.findall(ctdTheComment)
     print(ctdCommentItems)
+    print()
     #clean up keys and values
     ctdList4Output = []
     for ctdItem in ctdCommentItems:
@@ -174,6 +175,20 @@ def comment_to_dict(ctdInput):
             for ctdChar in ctdItem[1]:
                 if ctdChar in digits:
                     ctdInt += ctdChar
+                else:
+                    ctdList4Output[-1][1].append(int(ctdInt))
+                    ctdInt = ''
+        else:
+            ctdList4Output.append([ctdItem[0], ctdItem[2]])
+
+    if ctdList4Output[0][0][0] == ' ': #clip off leading space of first key
+        ctdList4Output[0][0] = ctdList4Output[0][0][1:]
+    print(ctdList4Output)
+    ctdOutput = {}
+    for ctdItem in ctdList4Output:
+        ctdOutput[ctdItem[0]] = ctdItem[1]
+    return ctdOutput
+    #TODO testrun this func
 
 
     #assemble dict
@@ -224,6 +239,8 @@ def txt_to_matrix(ttmGrid):
     return ttmOutGrid
 #TODO output is inverted (on y axis), needs fixing #I think I fixed this?
 
+def RLE_to_matrix(rle):
+    return txt_to_matrix(easy_RLE_to_txt(rle))
 
 #stolen from CGOL_game_runner
 #accepts grid and window for camera, prints grid.
@@ -299,14 +316,18 @@ json_file.close()
 #TODO check for consistency in cell values and such
 
 
-master_dict = {'#hash':
-                    {'hash': '#hash',
-                    'name': 'glider',
-                    'X_bound': 3,
-                    'Y_bound': 3,
-                    'RLE_code': 'bo$2bo$3o!',
-                    'comment_dict': {
-                        'zoom': 7, 'color deadramp': [255, 220, 192], 'grid color grid': [192, 192, 192]
-                        }
-                    }
-                }
+master_dict = {
+    '#hash': {
+        'hash': '#hash',
+        'name': 'glider',
+        'creator_name': 'Connor',
+        'xbound': 3,
+        'ybound': 3,
+        'rle': 'bo$2bo$3o!',
+        'comments': {
+            'zoom': 7, 
+            'color deadramp': [255, 220, 192], 
+            'grid color grid': [192, 192, 192]
+        }
+    }
+}
