@@ -22,6 +22,8 @@ lexicon_file = open("Game_Of_Life/lexicon.txt", 'r')
 lexicon_str = lexicon_file.read()
 lexicon_file.close()
 
+digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
+
 #                                      :(name_____):(paragraph_) (grid lines_______)
 grid_paragraph_regex = re.compile("""\n:([^\t\n:]+):([^\t\n]+\n)*((\t[\*\.]{2,}\n)+)""")
 #This regex seems to operate 100% correctly, but it is a good idea to triple-check it.
@@ -41,7 +43,13 @@ x = 65, y = 65, rule = B3/S23
 
 #zoom is the most unpredictable value
 default_RLE_comment = '#C [[ ZOOM 16 GRID COLOR GRID 192 192 192 COLOR DEADRAMP 255 220 192 COLOR ALIVE 0 0 0 COLOR ALIVERAMP 0 0 0 COLOR DEAD 192 220 255 COLOR BACKGROUND 255 255 255 GPS 10 WIDTH 937 HEIGHT 600 ]]\n'
-prefered_RLE_comment = ''
+
+comment_regex = re.compile('#C \[\[ .+ \]\]')
+
+comment_items_regex = re.compile('([A-Z ]+) ([0-9 ]+)|([A-Z][a-z]+)')
+#                                 beginning (key____ (value________________ ))+ end
+#comment_items_regex = re.compile('#C \[\[ (([A-Z ]+) ([0-9 ]+)|([A-Z][a-z]+) )+\]\]')
+# = re.compile('#C \[\[ (([A-Z ]+) ([0-9 ]+) )+\]\]')
 
 greedy_regex = re.compile('\$+')
 
@@ -61,12 +69,10 @@ def easy_RLE_to_txt(erttRLE):
                 erttRLEnoWS = erttRLEnoWS + char
         return advanced_RLE_to_txt(int(erttGroups[0]), int(erttGroups[1]), erttRLEnoWS)
 
-
 #This function converts RLE to plaintext. It accepts the pattern RLE, the X bound of the pattern, and the Y bound.
 def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
-    global line_regex
+    global line_regex, digits
     arttRLE = arttRLE.lower()
-    arttDigits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
     arttOutput = ''
     arttInt = ''
     arttCharsInLine = 0
@@ -74,7 +80,7 @@ def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
     for char in arttRLE:
         if  char in ('\n', '\t', ' '):
             continue
-        if char in arttDigits:
+        if char in digits:
             arttInt += char
 
         elif char == '$':
@@ -137,7 +143,6 @@ def txt_to_RLE(ttrInput):
     ttrDollarCount = 0
     for ttrInstance in ttrDollars: #finds the longest instance
         if len(ttrInstance) > ttrDollarCount: ttrDollarCount = len(ttrInstance)
-    print('ttrDollarCount == ' + str(ttrDollarCount))
     for ttrDollarLen in range(ttrDollarCount, 1, -1): #uses .sub on all $clusters, starting with the longest ones
         ttrDollarSub = re.compile('\$' * ttrDollarLen)
         ttrOutputRLE = ttrDollarSub.sub('%s$' % ttrDollarLen, ttrOutputRLE)
@@ -146,19 +151,39 @@ def txt_to_RLE(ttrInput):
     return default_RLE_comment + ttrOutputHeader + ttrOutputRLE
 
 
-junk_var = easy_RLE_to_txt(RLE_thing)
-junk_var2 = txt_to_RLE(junk_var)
-print(RLE_thing)
-print(junk_var)
-print()
-print(junk_var2)
-print(RLE_thing == junk_var2)
-#print(str_match(RLE_thing, junk_var2))
 
-#TODO make function that accepts raw RLE and returns a dict of process meta data, hash, etc.
-    #TODO make function that accepts entire RLE string, and converts the comments into a dictionary with values.
+
+#accepts raw RLE and returns a dict of process meta data, hash, etc.
+#def raw_RLE_to_processed(rrtpInput):
+
+
+#accepts entire raw RLE, returns a dict of meta-data from the "#C [[ ZOOM 7 ]]" comment
+def comment_to_dict(ctdInput):
+    global comment_regex, comment_items_regex, digits
+    ctdTheComment = comment_regex.search(ctdInput).group()
+    print(ctdTheComment)
+    ctdCommentItems = comment_items_regex.findall(ctdTheComment)
+    print(ctdCommentItems)
+    #clean up keys and values
+    ctdList4Output = []
+    for ctdItem in ctdCommentItems:
+        ctdList4Output.append([ctdItem[0]]) #deepcopy needed?
+        if ctdItem[1] != '':
+            ctdList4Output[-1].append([])
+            ctdInt = ''
+            for ctdChar in ctdItem[1]:
+                if ctdChar in digits:
+                    ctdInt += ctdChar
+
+
+    #assemble dict
+
+
+
+
+comment_to_dict(RLE_thing)
+
 #TODO make function that accepts processed data and returns a raw RLE string (including comments)
-
 
 
 
