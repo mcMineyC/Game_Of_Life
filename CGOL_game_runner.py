@@ -118,11 +118,14 @@ def cell_convert(ccState, ccLive, ccDead):
 
 #accepts coordinates of two chunks and returns all chunks within the window.
 def get_chunk_window(gcwUpLeft, gcwDownRight):
+    assert type(gcwUpLeft) in (tuple, list) and len(gcwUpLeft) == 2, 'gcw parameter gcwUpLeft passed invalid argument'
+    assert type(gcwDownRight) in (tuple, list) and len(gcwDownRight) == 2, 'gcw parameter gcwDownRight passed invalid argument'
     gcwOutput = []
     for gcwY, gcwCounter in zip(range(gcwUpLeft[1], gcwDownRight[1]-1, -1), range(99)):
         gcwOutput.append([])
         for gcwX in range(gcwUpLeft[0], gcwDownRight[0]+1):#correct?
             gcwOutput[gcwCounter].append((gcwX, gcwY))
+    assert gcwOutput != []
     return gcwOutput
 
 
@@ -190,5 +193,6 @@ print('Grid is empty. Program ended.')
 
 #Coding tip: Local variables do not have underscores and are prefixed by the name of their domain.
 
-#TODO: Optimization: make loops shorter, e.g. use while instead of for. Remove unecessary variables. What else?
+#TODO: Optimization: make loops shorter, e.g. use while instead of for. Remove unecessary variables and asserts (such as the one in get_window(). What else?
 #TODO speed test
+#TODO check for consistency in cell values and such
