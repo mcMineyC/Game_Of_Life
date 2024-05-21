@@ -12,3 +12,7 @@ lexicon_list = compiler.compile_to_list(lexicon)
 f_out = open("lexicon_list.json", 'w')
 json.dump(lexicon_list, f_out, indent=4)
 f_out.close()
+
+f_out = open("lexicon.jsonl", 'w')
+f_out.write(compiler.compile_to_jsonl(lexicon_list))
+f_out.close()

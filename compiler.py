@@ -46,3 +46,21 @@ def compile_to_list(input_dict):
     #converts the lexicon from a dictionary to a list
     #this is for the frontend to use
     return [input_dict[key] for key in input_dict]
+
+def compile_to_jsonl(input_dict):
+    #converts the lexicon from a dictionary to a jsonl file
+    #this is for the backend to use
+    jsonl = ""
+    for item in input_dict:
+        jsonl += json.dumps({
+            "id": item["hash"],
+            "hash": item["hash"],
+            "name": item["name"],
+            "creator": item["creator"],
+            "xbounds": item["xbounds"],
+            "ybounds": item["ybounds"],
+            "raw_rle": item["raw_rle"], #this is the full RLE, not just the pattern
+            "rle": item["rle"],
+            "comments": json.dumps(item["comments"])
+        }) + "\n"
+    return jsonl
