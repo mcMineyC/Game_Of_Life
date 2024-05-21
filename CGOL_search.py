@@ -2,7 +2,7 @@
 #It also accepts a "human" grid and converts it to the "computer" format.
 #NOTE: The functions and regexes are in regexes.py now
 
-#Why's this here still?
+#(Jedi): Why's this here still? (Connor): I don't know. I thing it's safe to just ignore. You can delete this file if you want.
 #TODO test run everything in search and txt convert
 
 master_dict = {
