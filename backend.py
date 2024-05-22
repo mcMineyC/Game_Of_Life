@@ -27,7 +27,7 @@ def status():
 @cross_origin()
 def get_patterns():
     print("Sending patterns")
-    pats = []
+    pats = json.load(open('patterns_list.json'))
     return json.dumps({
         'patterns': pats
     })
