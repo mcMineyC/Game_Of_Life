@@ -1,12 +1,18 @@
 #This program runs John Conway's Game of Life. It accepts a pattern to run, and calculates the next "day."
-#The game is run on a grid of cells. Each cell can be either 'live' or 'dead'
+#The game is run on a grid of cells. Each cell can be either live (True) or dead (False)
 
 import pprint #just for testing convenience
 import copy, json, time
 from CGOL_test_patterns import master_library
 
+'''
+#TODO create func to initialize global vars
+def initialize_game_runner:
+    from CGOL_game_runner import 
+'''
 
-empty_chunk = [['dead'] * 8] * 8
+
+empty_chunk = [[False] * 8] * 8
 #This is the master dictionary. It contains all open chunks on the grid. A chunk is an 8x8 square of cells on the grid.
 #Each chunk is made up of a list matrix of cells.
 #An absolute coordinate is one that just has the position of a cell.
@@ -20,7 +26,6 @@ today_grid = master_library['glider'] #just for testing purposes
 #The today_grid stores the current state of every cell. The tomorrow_grid is filled every cycle as the game decides what the
 #next day will look like.
 tomorrow_grid = {}
-empty_count = {(0, 0): 0}
 new_chunks = {}
 
 #Converts relative position to absolute position. accepts X and Y of chunk, then X and Y of cell in chunk.
@@ -31,12 +36,11 @@ def get_abs_position(gapChunk, gapX, gapY):
 def get_rltv_position(grpX, grpY):
     return ((int(grpX) // 8, int(grpY) // 8), int(grpX) % 8, int(grpY) % 8)
 
-srnd_cells = ((-1, 1), (0, 1), (1, 1), (-1, 0), (1, 0), (-1, -1), (0, -1), (1, -1))
+srnd_cells = ((-1, 1), (0, 1), (1, 1), (-1, 0), (1, 0), (-1, -1), (0, -1), (1, -1)) #TODO remove this value and just put it directly into the iterator
 #Find the states of all 8 cells surrounding this one. Accepts absolute position.
-#TODO: If gsc() tries to find a cell that doesn't exist (meaning it is in a cloesd chunk), it will send a request to open that chunk.
-def get_srnd_cells(gscXY):
+def get_srnd_cells(gscXY, gscIsNew): #gscIsNew cuts off unecessary processing when 
     (gscX, gscY) = gscXY
-    global srnd_cells, today_grid, empty_chunk, new_chunks, is_new
+    global srnd_cells, today_grid, empty_chunk, new_chunks, ngIs_new
     gscOutput = []
     for gscPosition in srnd_cells:
         #finds the relative position of one of the cells surrounding the chosen cell
@@ -47,9 +51,9 @@ def get_srnd_cells(gscXY):
         except:
             if gscOuterCell[0] in today_grid: #sanity check. TODO delete for final program
                 raise Exception('Eureka! Error on line 46:\ngscOutput.append(today_grid[gscOuterCell[0]][gscOuterCell[1]][gscOuterCell[2]])')
-            gscOutput.append('dead')
+            gscOutput.append(False)
             gscCell = get_rltv_position(gscX, gscY)
-            if today_grid[gscCell[0]][gscCell[1]][gscCell[2]] == "live" and is_new == False:  # Check if cell is live before doing chunk tests
+            if today_grid[gscCell[0]][gscCell[1]][gscCell[2]] and not gscIsNew:  # Check if cell is live before doing chunk tests
                 # Open an empty chunk
                 new_chunks[gscOuterCell[0]] = copy.deepcopy(empty_chunk)
                 #TODO Optimize: program unecessarily opens 3 chunks when processing a cell in the corner of a chunk.
@@ -58,38 +62,15 @@ def get_srnd_cells(gscXY):
 
 #Accepts state of a cell along with the states of its 8 neighbors; returns new state for cell.
 def cell_next_day(cndCellState, cndSrndngCells):
-    cndLive = cndSrndngCells.count('live')
-    if cndCellState == 'live':
+    cndLive = cndSrndngCells.count(True)
+    if cndCellState == True:
         if cndLive == 2 or cndLive == 3:
-            return 'live'
+            return True
     else: # is dead
         if cndLive == 3:
-            return 'live'
-    return 'dead'
+            return True
+    return False
 
-def print_chunk(pcChunk):
-    for row in pcChunk:
-        pcProcessed = []
-        for c in row:
-            pcProcessed.append('E' if c == "live" else ':')
-        print(pcProcessed)
-
-def print_board(pbGrid):
-    for key,value in grid.items():
-        print(str(key)+":\t"+str(empty_count[chunk])+"  # of ch. "+str(len(pbGridrid)))
-        print_chunk(value)
-
-def connor_print(cpGrid): #note: prints sideways.
-    for chunk in cpGrid: #iterates over every chunk key
-        for Xcoord in range(8): #iterates over every X coordinate in chunk
-            for Ycoord in range(8): #iterates over every Y coordinate
-                if cpGrid[chunk][Xcoord][Ycoord] == 'live':
-                    cpGrid[chunk][Xcoord][Ycoord] = '0'
-                elif cpGrid[chunk][Xcoord][Ycoord] == 'dead':
-                    cpGrid[chunk][Xcoord][Ycoord] = '.'
-                else:
-                    raise Exception('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-    pprint.pprint(cpGrid)
 
 #accepts grid and window for camera, prints grid.
 def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
@@ -99,22 +80,14 @@ def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
             for ppgChunk in ppgChunkRow:
                 for ppgX in range(8):
                     if ppgChunk in ppgGrid:
-                        ppgOutput = ppgOutput + cell_convert(ppgGrid[ppgChunk][ppgX][ppgCellRow], '[]', '<>')
+                        ppgOutput = ppgOutput + '[]' if ppgGrid[ppgChunk][ppgX][ppgCellRow] else '<>'
                     else:
-                        ppgOutput = ppgOutput + cell_convert('dead', '[]', '::')
+                        ppgOutput = ppgOutput + '::'
 
             ppgOutput = ppgOutput + '\n'
 
     print(ppgOutput)
 
-#accepts state (live or dead) and returns state as single character based on the two characters given.
-def cell_convert(ccState, ccLive, ccDead):
-    if ccState == 'live':
-        return ccLive
-    elif ccState == 'dead':
-        return ccDead
-    else:
-        raise Exception("cell_convert() given invalid ccState parameter: %s\nccState must equal either 'live' or 'dead'" % ccState)
 
 #accepts coordinates of two chunks and returns all chunks within the window.
 def get_chunk_window(gcwUpLeft, gcwDownRight):
@@ -130,27 +103,16 @@ def get_chunk_window(gcwUpLeft, gcwDownRight):
 
 
 
-
-day = 0
-#Daily loop:
-connor_print(copy.deepcopy(today_grid))
-while today_grid != {}:
-
-    print(day)
-    #print_board(today_grid)
-    #pprint.pprint(today_grid)
-    #connor_print(copy.deepcopy(today_grid))
-    pro_print_grid(copy.deepcopy(today_grid), (0, 4), (5, 0))
-    print("\n")
+#TODO put each gen run into a func that uses global vars:
+def next_gen(ngGrid):
+    start_time = time.perf_counter() #test speed #TODO remove for final product
 
     #begin building next day and assigning to tomorrow_grid:
-    is_new = False #cuts off unecessary processing in get_srnd_cells()
 
     #remove empty chunks from today_grid
-    for chunk in copy.deepcopy(today_grid):
+    for chunk in ngGrid.keys(): #TODO I Connor was halfway through modifying this block. Try to change to .items and root out today_grid from all othe lines
         if today_grid[chunk] == empty_chunk:
             del today_grid[chunk]
-            #print('closed chunk: ' + str(chunk))
 
     for chunk in today_grid: #iterates over every chunk key
         tomorrow_grid[chunk] = []
@@ -158,12 +120,9 @@ while today_grid != {}:
             tomorrow_grid[chunk].append([])
             for Ycoord in range(8): #iterates over every Y coordinate
                 #add cell to tomorrow_grid;          getNewState;  state of current cell              states of surrounding cells
-                tomorrow_grid[chunk][Xcoord].append(cell_next_day(today_grid[chunk][Xcoord][Ycoord], get_srnd_cells(get_abs_position(chunk, Xcoord, Ycoord))))
+                tomorrow_grid[chunk][Xcoord].append(cell_next_day(today_grid[chunk][Xcoord][Ycoord], get_srnd_cells(get_abs_position(chunk, Xcoord, Ycoord)), False))
 
-    #connor_print(copy.deepcopy(tomorrow_grid))
     #add newly any newly opened chunks to today_grid
-    is_new = True
-    #print('new_chunks.keys() == ' + str(new_chunks.keys()))
     for addition in new_chunks:
         today_grid[addition] = copy.deepcopy(new_chunks[addition])
         #print('opened chunk: ' + str(addition))
@@ -174,14 +133,35 @@ while today_grid != {}:
             tomorrow_grid[chunk].append([])
             for Ycoord in range(8): #iterates over every Y coordinate
                 #add cell to tomorrow_grid;          getNewState;  state of current cell              states of surrounding cells
-                tomorrow_grid[chunk][Xcoord].append(cell_next_day(today_grid[chunk][Xcoord][Ycoord], get_srnd_cells(get_abs_position(chunk, Xcoord, Ycoord))))
+                tomorrow_grid[chunk][Xcoord].append(cell_next_day(today_grid[chunk][Xcoord][Ycoord], get_srnd_cells(get_abs_position(chunk, Xcoord, Ycoord), True)))
 
 
     #this code below can either be at the front or the back of this loop. It prgresses the master dictionary to the next day.
-    day += 1
+    day += 1 #TODO remove
     today_grid = copy.deepcopy(tomorrow_grid)
     tomorrow_grid = {}
     new_chunks = {}
+    end_time = time.perf_counter()
+    print(end_time - start_time)
+
+
+
+
+
+
+day = 0
+#Daily loop:
+while today_grid != {}:
+
+    print(day)
+    #print_board(today_grid)
+    #pprint.pprint(today_grid)
+    #connor_print(copy.deepcopy(today_grid))
+    pro_print_grid(copy.deepcopy(today_grid), (0, 4), (5, 0))
+
+    new_super_grid = next_gen()
+    #day += 1
+
     time.sleep(0.2)
 
 

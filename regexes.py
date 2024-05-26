@@ -203,12 +203,11 @@ def txt_to_matrix(ttmGrid):
             #ttmOutGrid[(ChunkX, ChunkY)] = copy.deepcopy([[None]*8]*8) #my design. reference glitches?
             for CellY in range(8):
                 for CellX in range(8):
-                    #print('\t\t' + str((ChunkX, ChunkY, CellX, CellY)))
                     try:
                         #                                                       7- is used because Y0 is at the bottom of the txt
-                        ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = ttmGridLines[7 - (ChunkY*8+CellY)][ChunkX*8+CellX]
+                        ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = True if ttmGridLines[7 - (ChunkY*8+CellY)][ChunkX*8+CellX]=='*' else False
                     except IndexError:
-                        ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = '.'
+                        ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = False
     return ttmOutGrid
 #TODO output is inverted (on y axis), needs fixing #I think I fixed this?
 
@@ -239,13 +238,13 @@ def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
     print(ppgOutput)# + '\n^above is the pattern^')
 
 #accepts state (live or dead) and returns state as single character based on the two characters given.
-def cell_convert(ccState, ccLive, ccDead):
+def cell_convert(ccState, ccLive, ccDead): #TODO this func is overkill. just use a one line if statement instead
     if ccState == '*':
         return ccLive
     elif ccState == '.':
         return ccDead
     else:
-        raise Exception("cell_convert() given invalid ccState parameter: %s\nccState must equal either 'live' or 'dead'" % ccState)
+        raise Exception("cell_convert() given invalid ccState parameter: %s" % ccState)
 
 #accepts coordinates of two chunks and returns all chunks within the window.
 def get_chunk_window(gcwUpLeft, gcwDownRight):
@@ -268,3 +267,18 @@ def str_match(smInput1, smInput2):
         else:
             smOutput += '_'
     return smOutput
+
+
+#test; delete later
+print(txt_to_matrix("""....**......**....
+	...*.*......*.*...
+	...*..........*...
+	**.*..........*.**
+	**.*.*..**..*.*.**
+	...*.*.*..*.*.*...
+	...*.*.*..*.*.*...
+	**.*.*..**..*.*.**
+	**.*..........*.**
+	...*..........*...
+	...*.*......*.*...
+	....**......**...."""))
