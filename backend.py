@@ -1,6 +1,7 @@
 from flask import Flask, request
 from flask_cors import CORS, cross_origin
 import json, typesense
+import regexes
 
 client = typesense.Client({
     'nodes': [{
@@ -27,10 +28,33 @@ def status():
 @cross_origin()
 def get_patterns():
     print("Sending patterns")
-    pats = []
+    pats = json.load(open('patterns_list.json'))
     return json.dumps({
         'patterns': pats
     })
+
+@app.route('/patterns/get-named')
+@cross_origin()
+def get_pattern_by_id():
+    print("Sending pattern by ID")
+    pats = json.load(open('patterns.json'))
+    try:
+        return json.dumps({"success": True, "result": pats[request.args.get('id')]})
+    except:
+        print("Error: Pattern not found")
+        return json.dumps({"success": False, "error": "Pattern not found"})
+
+
+@app.route('/lexicon/get-named')
+@cross_origin()
+def get_lexicon_by_id():
+    print("Sending pattern from lexicon by ID")
+    pats = json.load(open('lexicon.json'))
+    try:
+        return json.dumps({"success": True, "result": pats[request.args.get('id')]})
+    except:
+        print("Error: Pattern not found")
+        return json.dumps({"success": False, "error": "Pattern not found in lexicon"})
 
 @app.route('/lexicon/get')
 @cross_origin()
@@ -58,7 +82,14 @@ def search_lexicon():
         'patterns': list
     }, indent=4)
 
-
+@app.route('/translate', methods=['POST'])
+@cross_origin()
+def translate():
+    print("Translating pattern")
+    return json.dumps({
+        'success': True,
+        'result': {}
+    }, indent=4)
 
 
 if __name__ == '__main__':
