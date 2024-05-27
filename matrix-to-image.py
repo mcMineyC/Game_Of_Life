@@ -8,42 +8,38 @@ from CGOL_game_runner import get_abs_position
 tru = (255,255,255)
 fal = (000,000,000)
 
-#accepts position of lower left chunk of camera window. returns x and y absolute values
-def camera_difference(cdInputChunk):
-    return (cdInputChunk[0]*8, cdInputChunk[1]*8)
 
-def pro_print_grid_image(ppgGrid, ppgUpLeft, ppgDownRight):
+def pro_print_grid_image(ppgGrid, ppgDownLeft):
     i = Image.new("RGB", (64, 64))
     d = ImageDraw.Draw(i)
     d.rectangle([0, 0, 64, 64], fill="#ff0000")
-    # print(get_chunk_window(ppgUpLeft, ppgDownRight))
-    for ppgChunk in get_chunk_window(ppgUpLeft, ppgDownRight):
-        for ppgCellRow in range(8):
+
+    for ppgChunk, ppgCamChunk in zip(get_chunk_window((ppgDownLeft[0], ppgDownLeft[1]+7), (ppgDownLeft[0]+7, ppgDownLeft[1])), get_chunk_window((0, 7), (7, 0))):
+        for ppgY in range(8):
                 for ppgX in range(8):
-                    tX,tY = get_abs_position(ppgChunk, ppgX, ppgCellRow)
-                    difference = (16, 16)
-                    final = (tX+difference[0], tY+difference[1])
-                    inv = (final[0], 63-final[1])
-                    #difference = camera_difference((1, 2))#put camera position here
-                    
+
+                    tX,tY = get_abs_position(ppgCamChunk, ppgX, ppgY)
+
                     if ppgChunk in ppgGrid:
-                        #inverted_cell_row = 7-ppgCellRow
-                        i.putpixel(inv, (tru if ppgGrid[ppgChunk][ppgX][ppgCellRow] else fal))
+                        ppgCell = (tru if ppgGrid[ppgChunk][ppgX][ppgY] else fal)
+
                     else:
-                        i.putpixel(inv, fal)
+                        ppgCell = fal
+
+                    i.putpixel((tX, 63-tY), ppgCell)
 
     return i
 
 
 #accepts coordinates of two chunks and returns all chunks within the window.
-def get_chunk_window(gcwUpLeft, gcwDownRight):
+def get_chunk_window(gcwUpLeft, gcwDownRight): #TODO remove asserts to improve speed
     assert type(gcwUpLeft) in (tuple, list) and len(gcwUpLeft) == 2, 'gcw parameter gcwUpLeft passed invalid argument'
     assert type(gcwDownRight) in (tuple, list) and len(gcwDownRight) == 2, 'gcw parameter gcwDownRight passed invalid argument'
     gcwOutput = []
     for gcwY, gcwCounter in zip(range(gcwUpLeft[1], gcwDownRight[1]-1, -1), range(99)):
         for gcwX in range(gcwUpLeft[0], gcwDownRight[0]+1):#correct?
             gcwOutput.append((gcwX, gcwY))
-    assert gcwOutput != []
+    #assert gcwOutput != [] #stupid?
     return gcwOutput
 
 def matrixToImage(matrix, aliveColor, deadColor):
@@ -56,7 +52,7 @@ def matrixToImage(matrix, aliveColor, deadColor):
     return i
 
 #im = matrixToImage(CGOL_test_patterns.master_library["glider"][(0,0)],tru,fal)
-im = pro_print_grid_image(CGOL_test_patterns.master_library["glider"], (0, 7), (7, 0))
+im = pro_print_grid_image(CGOL_test_patterns.master_library["glider"], (-2,-7)) #TODO fix arguments?
 # i = Image.new("RGB", (64, 64))
 # d = ImageDraw.Draw(i)
 # d.rectangle([0, 0, 64, 64], fill="#ff0000")
