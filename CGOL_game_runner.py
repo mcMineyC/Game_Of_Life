@@ -4,6 +4,7 @@
 import pprint #just for testing convenience
 import copy, json, time
 from CGOL_test_patterns import master_library
+from snark import snarky
 
 '''
 #TODO create func to initialize global vars
@@ -20,8 +21,7 @@ empty_chunk = [[False] * 8] * 8
 #The relative coordinate of a cell within a chunk does not change based on what quadrant the chunk is in. The bottom 
 #left cell in a chunk is always (0, 0).
 #To retrieve a cell from today_grid (ngInputGrid), use the following format: today_grid[chunk][X][Y]
-new_super_grid = master_library['glider'] #just for testing purposes
-# today_grid = pattern2
+new_super_grid = snarky #just for testing purposes
 #The today_grid (ngInputGrid) stores the current state of every cell. The tomorrow_grid (ngOutputGrid) is filled every cycle as the game decides what the
 #next day will look like.
 
@@ -84,7 +84,7 @@ def cell_next_day(cndCellState, cndSrndngCells):
 #accepts grid and window for camera, prints grid.
 def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
     ppgOutput = ''
-    print(get_chunk_window(ppgUpLeft, ppgDownRight))
+    #print(get_chunk_window(ppgUpLeft, ppgDownRight))
     for ppgChunkRow in get_chunk_window(ppgUpLeft, ppgDownRight):
         for ppgCellRow in range(7, -1, -1):
             for ppgChunk in ppgChunkRow:
@@ -93,7 +93,7 @@ def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
                         ppgOutput = ppgOutput + ('[]' if ppgGrid[ppgChunk][ppgX][ppgCellRow] else '<>')
                     else:
                         ppgOutput += '::'
-                    print(ppgChunk, ppgCellRow, ppgX, ppgOutput[-2:])
+                    #print(ppgChunk, ppgCellRow, ppgX, ppgOutput[-2:])
 
             ppgOutput += '\n'
 
@@ -155,24 +155,20 @@ def next_gen(ngInputGrid):
 
     #this code below can either be at the front or the back of this loop. It prgresses the master dictionary to the next day.
     end_time = time.perf_counter()
-    print(end_time - start_time)
+    #print(end_time - start_time)
     return ngOutputGrid
 
 
 
 
 
-"""
+
 day = 0
 #Daily loop:
-while day != 1:
+while new_super_grid != {}:
 
     print(day)
-    #print_board(today_grid)
-    #pprint.pprint(today_grid)
-    #connor_print(copy.deepcopy(today_grid))
-    pro_print_grid(new_super_grid, (0, 4), (5, 0))
-    print(new_super_grid)
+    pro_print_grid(new_super_grid, (0, 7), (7, 0))
 
     new_super_grid = next_gen(new_super_grid)
     day += 1
@@ -183,7 +179,7 @@ while day != 1:
 
 
 print('Grid is empty. Program ended.')
-"""
+
 
 
 #Coding tip: Local variables do not have underscores and are prefixed by the name of their domain.

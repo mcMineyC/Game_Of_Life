@@ -1,9 +1,12 @@
 from PIL import Image, ImageDraw
 import copy, CGOL_test_patterns
 from CGOL_game_runner import get_abs_position
+from regexes import RLE_to_matrix
+from snark import snarky
 
 # blank = [[False] * 64] * 64
 # blank = copy.deepcopy(blank)
+
 
 tru = (255,255,255)
 fal = (000,000,000)
@@ -52,7 +55,7 @@ def matrixToImage(matrix, aliveColor, deadColor):
     return i
 
 #im = matrixToImage(CGOL_test_patterns.master_library["glider"][(0,0)],tru,fal)
-im = pro_print_grid_image(CGOL_test_patterns.master_library["glider"], (-2,-7)) #TODO fix arguments?
+im = pro_print_grid_image(snarky, (0, 0))
 # i = Image.new("RGB", (64, 64))
 # d = ImageDraw.Draw(i)
 # d.rectangle([0, 0, 64, 64], fill="#ff0000")
