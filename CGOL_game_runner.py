@@ -19,14 +19,16 @@ empty_chunk = [[False] * 8] * 8
 #A relative coordinate is the coordinate of a cell within a specific chunk. These below are relative coordinates.
 #The relative coordinate of a cell within a chunk does not change based on what quadrant the chunk is in. The bottom 
 #left cell in a chunk is always (0, 0).
-#To retrieve a cell from today_grid, use the following format: today_grid[chunk][X][Y]
-today_grid = {(0, 0): copy.deepcopy((empty_chunk))}
-today_grid = master_library['glider'] #just for testing purposes
+#To retrieve a cell from today_grid (ngInputGrid), use the following format: today_grid[chunk][X][Y]
+new_super_grid = master_library['glider'] #just for testing purposes
 # today_grid = pattern2
-#The today_grid stores the current state of every cell. The tomorrow_grid is filled every cycle as the game decides what the
+#The today_grid (ngInputGrid) stores the current state of every cell. The tomorrow_grid (ngOutputGrid) is filled every cycle as the game decides what the
 #next day will look like.
-tomorrow_grid = {}
-new_chunks = {}
+
+
+
+
+
 
 #Converts relative position to absolute position. accepts X and Y of chunk, then X and Y of cell in chunk.
 def get_abs_position(gapChunk, gapX, gapY):
@@ -36,29 +38,32 @@ def get_abs_position(gapChunk, gapX, gapY):
 def get_rltv_position(grpX, grpY):
     return ((int(grpX) // 8, int(grpY) // 8), int(grpX) % 8, int(grpY) % 8)
 
-srnd_cells = ((-1, 1), (0, 1), (1, 1), (-1, 0), (1, 0), (-1, -1), (0, -1), (1, -1)) #TODO remove this value and just put it directly into the iterator
 #Find the states of all 8 cells surrounding this one. Accepts absolute position.
-def get_srnd_cells(gscXY, gscIsNew): #gscIsNew cuts off unecessary processing when 
+def get_srnd_cells(gscXY, gscIsNew, gscMasterGrid): #gscIsNew cuts off unecessary processing when 
     (gscX, gscY) = gscXY
-    global srnd_cells, today_grid, empty_chunk, new_chunks, ngIs_new
+    global empty_chunk
+    #nonlocal ngInputGrid, ngNewChunks
+
     gscOutput = []
-    for gscPosition in srnd_cells:
+    gscNewChunks = {}
+    for gscPosition in ((-1, 1), (0, 1), (1, 1), (-1, 0), (1, 0), (-1, -1), (0, -1), (1, -1)): #iterates over all 8 surrounding cells
         #finds the relative position of one of the cells surrounding the chosen cell
         gscOuterCell = get_rltv_position(gscX + gscPosition[0], gscY + gscPosition[1])
         try:
-            #retrieves the state of the above mentioned cell from today_grid and appends to gscOutput
-            gscOutput.append(today_grid[gscOuterCell[0]][gscOuterCell[1]][gscOuterCell[2]])
-        except:
-            if gscOuterCell[0] in today_grid: #sanity check. TODO delete for final program
-                raise Exception('Eureka! Error on line 46:\ngscOutput.append(today_grid[gscOuterCell[0]][gscOuterCell[1]][gscOuterCell[2]])')
+            #retrieves the state of the above mentioned cell from gscMasterGrid and appends to gscOutput
+            gscOutput.append(gscMasterGrid[gscOuterCell[0]][gscOuterCell[1]][gscOuterCell[2]]) #can you see me?
+        except KeyError:
+            if gscOuterCell[0] in gscMasterGrid: #sanity check. TODO delete for final program
+                raise Exception('Eureka! Error on line 46(?):\ngscOutput.append(gscMasterGrid[gscOuterCell[0]][gscOuterCell[1]][gscOuterCell[2]])')
             gscOutput.append(False)
             gscCell = get_rltv_position(gscX, gscY)
-            if today_grid[gscCell[0]][gscCell[1]][gscCell[2]] and not gscIsNew:  # Check if cell is live before doing chunk tests
+            if gscMasterGrid[gscCell[0]][gscCell[1]][gscCell[2]] and not gscIsNew:  # Check if cell is live band if chunk is new
                 # Open an empty chunk
-                new_chunks[gscOuterCell[0]] = copy.deepcopy(empty_chunk)
+                gscNewChunks[gscOuterCell[0]] = copy.deepcopy(empty_chunk)
                 #TODO Optimize: program unecessarily opens 3 chunks when processing a cell in the corner of a chunk.
 
-    return gscOutput
+    return (gscOutput, gscNewChunks)
+
 
 #Accepts state of a cell along with the states of its 8 neighbors; returns new state for cell.
 def cell_next_day(cndCellState, cndSrndngCells):
@@ -72,19 +77,25 @@ def cell_next_day(cndCellState, cndSrndngCells):
     return False
 
 
+
+
+
+
 #accepts grid and window for camera, prints grid.
 def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
     ppgOutput = ''
+    print(get_chunk_window(ppgUpLeft, ppgDownRight))
     for ppgChunkRow in get_chunk_window(ppgUpLeft, ppgDownRight):
         for ppgCellRow in range(7, -1, -1):
             for ppgChunk in ppgChunkRow:
                 for ppgX in range(8):
                     if ppgChunk in ppgGrid:
-                        ppgOutput = ppgOutput + '[]' if ppgGrid[ppgChunk][ppgX][ppgCellRow] else '<>'
+                        ppgOutput = ppgOutput + ('[]' if ppgGrid[ppgChunk][ppgX][ppgCellRow] else '<>')
                     else:
-                        ppgOutput = ppgOutput + '::'
+                        ppgOutput += '::'
+                    print(ppgChunk, ppgCellRow, ppgX, ppgOutput[-2:])
 
-            ppgOutput = ppgOutput + '\n'
+            ppgOutput += '\n'
 
     print(ppgOutput)
 
@@ -103,64 +114,68 @@ def get_chunk_window(gcwUpLeft, gcwDownRight):
 
 
 
+
+
 #TODO put each gen run into a func that uses global vars:
-def next_gen(ngGrid):
+#accepts full grid and returns the next generation of the grid.
+def next_gen(ngInputGrid):
+    global empty_chunk
+    ngOutputGrid = {}
     start_time = time.perf_counter() #test speed #TODO remove for final product
 
-    #begin building next day and assigning to tomorrow_grid:
+    #remove empty chunks from ngInputGrid
+    for chunk in copy.deepcopy(ngInputGrid):
+        if ngInputGrid[chunk] == empty_chunk:
+            del ngInputGrid[chunk]
 
-    #remove empty chunks from today_grid
-    for chunk in ngGrid.keys(): #TODO I Connor was halfway through modifying this block. Try to change to .items and root out today_grid from all othe lines
-        if today_grid[chunk] == empty_chunk:
-            del today_grid[chunk]
-
-    for chunk in today_grid: #iterates over every chunk key
-        tomorrow_grid[chunk] = []
+    for chunk in ngInputGrid: #iterates over every chunk key
+        ngOutputGrid[chunk] = []
         for Xcoord in range(8): #iterates over every X coordinate in chunk
-            tomorrow_grid[chunk].append([])
+            ngOutputGrid[chunk].append([])
             for Ycoord in range(8): #iterates over every Y coordinate
-                #add cell to tomorrow_grid;          getNewState;  state of current cell              states of surrounding cells
-                tomorrow_grid[chunk][Xcoord].append(cell_next_day(today_grid[chunk][Xcoord][Ycoord], get_srnd_cells(get_abs_position(chunk, Xcoord, Ycoord)), False))
+                #find states of surrounding cells
+                ngSrndCells, ngNewChunks = get_srnd_cells(get_abs_position(chunk, Xcoord, Ycoord), False, ngInputGrid)
+                #find new state of cell and add to ngOutputGrid
+                ngOutputGrid[chunk][Xcoord].append(cell_next_day(ngInputGrid[chunk][Xcoord][Ycoord], ngSrndCells))
 
-    #add newly any newly opened chunks to today_grid
-    for addition in new_chunks:
-        today_grid[addition] = copy.deepcopy(new_chunks[addition])
+    #add newly any newly opened chunks to ngInputGrid
+    for addition in ngNewChunks:
+        ngInputGrid[addition] = copy.deepcopy(ngNewChunks[addition])
         #print('opened chunk: ' + str(addition))
     #Iterate over all cells in newly opened chunks:
-    for chunk in copy.deepcopy(new_chunks): #iterates over every chunk key
-        tomorrow_grid[chunk] = []
+    for chunk in copy.deepcopy(ngNewChunks): #iterates over every chunk key
+        ngOutputGrid[chunk] = []
         for Xcoord in range(8): #iterates over every X coordinate in chunk
-            tomorrow_grid[chunk].append([])
+            ngOutputGrid[chunk].append([])
             for Ycoord in range(8): #iterates over every Y coordinate
-                #add cell to tomorrow_grid;          getNewState;  state of current cell              states of surrounding cells
-                tomorrow_grid[chunk][Xcoord].append(cell_next_day(today_grid[chunk][Xcoord][Ycoord], get_srnd_cells(get_abs_position(chunk, Xcoord, Ycoord), True)))
-
+                #find states of surrounding cells
+                ngSrndCells, ngNewChunks = get_srnd_cells(get_abs_position(chunk, Xcoord, Ycoord), True, ngInputGrid)
+                #find new state of cell and add to ngOutputGrid
+                ngOutputGrid[chunk][Xcoord].append(cell_next_day(ngInputGrid[chunk][Xcoord][Ycoord], ngSrndCells))
 
     #this code below can either be at the front or the back of this loop. It prgresses the master dictionary to the next day.
-    day += 1 #TODO remove
-    today_grid = copy.deepcopy(tomorrow_grid)
-    tomorrow_grid = {}
-    new_chunks = {}
     end_time = time.perf_counter()
     print(end_time - start_time)
+    return ngOutputGrid
 
 
 
 
 
-
+"""
 day = 0
 #Daily loop:
-while today_grid != {}:
+while day != 1:
 
     print(day)
     #print_board(today_grid)
     #pprint.pprint(today_grid)
     #connor_print(copy.deepcopy(today_grid))
-    pro_print_grid(copy.deepcopy(today_grid), (0, 4), (5, 0))
+    pro_print_grid(new_super_grid, (0, 4), (5, 0))
+    print(new_super_grid)
 
-    new_super_grid = next_gen()
-    #day += 1
+    new_super_grid = next_gen(new_super_grid)
+    day += 1
 
     time.sleep(0.2)
 
@@ -168,7 +183,7 @@ while today_grid != {}:
 
 
 print('Grid is empty. Program ended.')
-
+"""
 
 
 #Coding tip: Local variables do not have underscores and are prefixed by the name of their domain.
