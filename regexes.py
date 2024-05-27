@@ -16,7 +16,7 @@ grid_paragraph_regex = re.compile(r"\n:([^\t\n:]+):([^\t\n]+\n)*((\t[\*\.]{2,}\n
 
 grid_regex = re.compile(r'((\t[\*\.]{2,}\n)+)')#findall() works, but adds an extra line to the end. Fixable?
 
-line_regex = re.compile(r'\t?([\*\.]{2,})\n') #only matches plaintext patterns whose live/dead characters are */.
+line_regex = re.compile(r'\t?([\*\.]{2,})\n') #only matches plaintext patterns whose live/dead characters are */. #IMPORTANT will not match final line uless final line ends with '\n'
 
 whitespace_regex = re.compile(r'\s')
 
@@ -179,6 +179,7 @@ def comment_to_dict(ctdInput):
 #Converts plaintext pattern to list matrix pattern
 def txt_to_matrix(ttmGrid):
     global line_regex
+    ttmGrid += '\n'#regex will not catch final line if it does not end with '\n'
 
     #break up grid into lines
     ttmGridLines = line_regex.findall(ttmGrid)
@@ -195,9 +196,13 @@ def txt_to_matrix(ttmGrid):
     else:
         ttmChunkHeight = ttmCellHeight // 8 + 1
 
+    print(ttmGridLines)
+    print(ttmChunkWidth, ttmChunkHeight, ttmCellWidth, ttmCellHeight)
+
+
     #convert to dictionary
     ttmOutGrid = {}
-    for ChunkY in range(ttmChunkHeight):
+    for ChunkY in range(ttmChunkHeight): #go bakcwards? Nope!
         for ChunkX in range(ttmChunkWidth):
             ttmOutGrid[(ChunkX, ChunkY)] = [[None for _ in range(8)] for _ in range(8)] #Suggested by Copilot
             #ttmOutGrid[(ChunkX, ChunkY)] = copy.deepcopy([[None]*8]*8) #my design. reference glitches?
@@ -205,11 +210,17 @@ def txt_to_matrix(ttmGrid):
                 for CellX in range(8):
                     try:
                         #                                                       7- is used because Y0 is at the bottom of the txt
-                        ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = True if ttmGridLines[7 - (ChunkY*8+CellY)][ChunkX*8+CellX]=='*' else False
+                        #ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = (True if ttmGridLines[7 - (ChunkY*8+CellY)][ChunkX*8+CellX]=='*' else False) #old code. fixed?
+                        ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = (True if ttmGridLines[ttmCellWidth - (ChunkY*8+CellY)][ChunkX*8+CellX]=='*' else False)
+                        #print(7 - (ChunkY*8+CellY), ChunkX*8+CellX, ttmGridLines[7 - (ChunkY*8+CellY)][ChunkX*8+CellX])
                     except IndexError:
                         ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = False
     return ttmOutGrid
 #TODO output is inverted (on y axis), needs fixing #I think I fixed this?
+
+
+
+
 
 
 #Converts RLE to list matrix pattern
@@ -223,29 +234,19 @@ def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
     ppgOutput = ''
     #print(get_chunk_window(ppgUpLeft, ppgDownRight))
     for ppgChunkRow in get_chunk_window(ppgUpLeft, ppgDownRight):
-        #print('\t\tppg did something!!')
         for ppgCellRow in range(7, -1, -1):
-            #print('\t\t\tppg did something!!')
             for ppgChunk in ppgChunkRow:
-                #print('\t\t\t\tppg did something!!')
                 for ppgX in range(8):
-                    #print('\t\t\t\t\tppg did something!!')
                     if ppgChunk in ppgGrid:
-                        ppgOutput = ppgOutput + cell_convert(ppgGrid[ppgChunk][ppgX][ppgCellRow], '[]', '<>')
+                        ppgOutput = ppgOutput + ('[]' if ppgGrid[ppgChunk][ppgX][ppgCellRow] else '<>')
                     else:
-                        ppgOutput = ppgOutput + cell_convert('.', '[]', '::')
-            ppgOutput = ppgOutput + '\n'
+                        ppgOutput += '::'
+                    #print(ppgChunk, ppgCellRow, ppgX, ppgOutput[-2:])
 
-    print(ppgOutput)# + '\n^above is the pattern^')
+            ppgOutput += '\n'
 
-#accepts state (live or dead) and returns state as single character based on the two characters given.
-def cell_convert(ccState, ccLive, ccDead): #TODO this func is overkill. just use a one line if statement instead
-    if ccState == '*':
-        return ccLive
-    elif ccState == '.':
-        return ccDead
-    else:
-        raise Exception("cell_convert() given invalid ccState parameter: %s" % ccState)
+    print(ppgOutput)
+
 
 #accepts coordinates of two chunks and returns all chunks within the window.
 def get_chunk_window(gcwUpLeft, gcwDownRight):
@@ -275,6 +276,8 @@ the_snark = '''#C [[ ZOOM 6 GRID COLOR GRID 192 192 192 COLOR DEADRAMP 255 220 1
 x = 65, y = 65, rule = B3/S23
 27b2o$27bobo$29bo4b2o$25b4ob2o2bo2bo$25bo2bo3bobob2o$28bobobobo$29b2obobo$33bo2$19b2o$20bo8bo$20bobo5b2o$21b2o$35bo$36bo$34b3o2$25bo$25b2o$24bobo4b2o22bo$31bo21b3o$32b3o17bo$34bo17b2o2$45bo$46b2o12b2o$45b2o14bo$3b2o56bob2o$4bo9b2o37bo5b3o2bo$2bo10bobo37b2o3bo3b2o$2b5o8bo5b2o35b2obo$7bo13bo22b2o15bo$4b3o12bobo21bobo12b3o$3bo15b2o22bo13bo$3bob2o35b2o5bo8b5o$b2o3bo3b2o37bobo10bo$o2b3o5bo37b2o9bo$2obo56b2o$3bo14b2o$3b2o12b2o$19bo2$11b2o17bo$12bo17b3o$9b3o21bo$9bo22b2o4bobo$38b2o$39bo2$28b3o$28bo$29bo$42b2o$35b2o5bobo$35bo8bo$44b2o2$31bo$30bobob2o$30bobobobo$27b2obobo3bo2bo$27bo2bo2b2ob4o$29b2o4bo$35bobo$36b2o!'''
 
+
 snark_txt = easy_RLE_to_txt(the_snark)
-print()
-print(txt_to_matrix(snark_txt))
+
+final_snark = txt_to_matrix(snark_txt)
+pro_print_grid(final_snark, (0, 7), (7, 0))

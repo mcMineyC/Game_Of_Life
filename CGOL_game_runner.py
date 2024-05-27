@@ -4,7 +4,6 @@
 import pprint #just for testing convenience
 import copy, json, time
 from CGOL_test_patterns import master_library
-from snark import snarky
 
 '''
 #TODO create func to initialize global vars
@@ -21,7 +20,7 @@ empty_chunk = [[False] * 8] * 8
 #The relative coordinate of a cell within a chunk does not change based on what quadrant the chunk is in. The bottom 
 #left cell in a chunk is always (0, 0).
 #To retrieve a cell from today_grid (ngInputGrid), use the following format: today_grid[chunk][X][Y]
-new_super_grid = snarky #just for testing purposes
+#new_super_grid = snarky #just for testing purposes
 #The today_grid (ngInputGrid) stores the current state of every cell. The tomorrow_grid (ngOutputGrid) is filled every cycle as the game decides what the
 #next day will look like.
 
@@ -162,7 +161,7 @@ def next_gen(ngInputGrid):
 
 
 
-
+"""
 day = 0
 #Daily loop:
 while new_super_grid != {}:
@@ -178,7 +177,9 @@ while new_super_grid != {}:
 
 
 
+
 print('Grid is empty. Program ended.')
+"""
 
 
 
