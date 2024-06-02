@@ -212,7 +212,7 @@ def txt_to_matrix(ttmGrid):
                         #                                                       7- is used because Y0 is at the bottom of the txt
                         #ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = (True if ttmGridLines[7 - (ChunkY*8+CellY)][ChunkX*8+CellX]=='*' else False) #old code. fixed?
                         ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = (True if ttmGridLines[ttmCellWidth - (ChunkY*8+CellY)][ChunkX*8+CellX]=='*' else False)
-                        #print(7 - (ChunkY*8+CellY), ChunkX*8+CellX, ttmGridLines[7 - (ChunkY*8+CellY)][ChunkX*8+CellX])
+                        print(ttmCellWidth - (ChunkY*8+CellY), ChunkX*8+CellX, ttmGridLines[ttmCellWidth - (ChunkY*8+CellY)][ChunkX*8+CellX])
                     except IndexError:
                         ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = False
     return ttmOutGrid
