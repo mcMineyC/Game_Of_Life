@@ -1,3 +1,4 @@
+#this file houses all of the functions and regexes and such
 
 #TODO remove print lines that are commented out
 #TODO check for consistency in cell values and such
@@ -9,6 +10,7 @@
 import re
 
 digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
+empty_chunk = [[False] * 8] * 8
 
 #                                      :(name_____):(paragraph_) (grid lines_______)
 grid_paragraph_regex = re.compile(r"\n:([^\t\n:]+):([^\t\n]+\n)*((\t[\*\.]{2,}\n)+)")
@@ -170,7 +172,6 @@ def comment_to_dict(ctdInput):
         if len(ctdItem[1]) == 1:        #convert single item lists to items eg. numbers
             ctdItem[1] = ctdItem[1][0]
     
-    # print(ctdList4Output)
     ctdOutput = {}
     for ctdItem in ctdList4Output:
         ctdOutput[ctdItem[0]] = ctdItem[1]
@@ -178,11 +179,12 @@ def comment_to_dict(ctdInput):
 
 #Converts plaintext pattern to list matrix pattern
 def txt_to_matrix(ttmGrid):
-    global line_regex
+    global line_regex, empty_chunk
     ttmGrid += '\n'#regex will not catch final line if it does not end with '\n'
 
     #break up grid into lines
     ttmGridLines = line_regex.findall(ttmGrid)
+    ttmGridLines.reverse()
 
     #get grid specs
     ttmCellWidth = len(ttmGridLines[0]) #If this line raises an error, it is because cfGridLines == []. cfGrid is invalid and likely missing \t or \n
@@ -195,14 +197,11 @@ def txt_to_matrix(ttmGrid):
         ttmChunkHeight = ttmCellHeight // 8
     else:
         ttmChunkHeight = ttmCellHeight // 8 + 1
-
-    print(ttmGridLines)
-    print(ttmChunkWidth, ttmChunkHeight, ttmCellWidth, ttmCellHeight)
-
+    #print(ttmChunkWidth, ttmChunkHeight, ttmCellWidth, ttmCellHeight)
 
     #convert to dictionary
     ttmOutGrid = {}
-    for ChunkY in range(ttmChunkHeight): #go bakcwards? Nope!
+    for ChunkY in range(ttmChunkHeight):
         for ChunkX in range(ttmChunkWidth):
             ttmOutGrid[(ChunkX, ChunkY)] = [[None for _ in range(8)] for _ in range(8)] #Suggested by Copilot
             #ttmOutGrid[(ChunkX, ChunkY)] = copy.deepcopy([[None]*8]*8) #my design. reference glitches?
@@ -211,13 +210,14 @@ def txt_to_matrix(ttmGrid):
                     try:
                         #                                                       7- is used because Y0 is at the bottom of the txt
                         #ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = (True if ttmGridLines[7 - (ChunkY*8+CellY)][ChunkX*8+CellX]=='*' else False) #old code. fixed?
-                        ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = (True if ttmGridLines[ttmCellWidth - (ChunkY*8+CellY)][ChunkX*8+CellX]=='*' else False)
+                        ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = (True if ttmGridLines[ChunkY*8+CellY][ChunkX*8+CellX] == '*' else False)
                         #print(7 - (ChunkY*8+CellY), ChunkX*8+CellX, ttmGridLines[7 - (ChunkY*8+CellY)][ChunkX*8+CellX])
                     except IndexError:
                         ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = False
+            #delete chunk if empty
+            if ttmOutGrid[(ChunkX, ChunkY)] == empty_chunk:
+                del ttmOutGrid[(ChunkX, ChunkY)]
     return ttmOutGrid
-#TODO output is inverted (on y axis), needs fixing #I think I fixed this?
-
 
 
 
@@ -229,10 +229,9 @@ def RLE_to_matrix(rle):
     return txt_to_matrix(easy_RLE_to_txt(rle))
 
 #Permanantly borrowed™ from CGOL_game_runner
-#accepts grid and window for camera, prints grid.
+#accepts grid and window for camera, prints grid to terminal.
 def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
     ppgOutput = ''
-    #print(get_chunk_window(ppgUpLeft, ppgDownRight))
     for ppgChunkRow in get_chunk_window(ppgUpLeft, ppgDownRight):
         for ppgCellRow in range(7, -1, -1):
             for ppgChunk in ppgChunkRow:
@@ -241,27 +240,28 @@ def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
                         ppgOutput = ppgOutput + ('[]' if ppgGrid[ppgChunk][ppgX][ppgCellRow] else '<>')
                     else:
                         ppgOutput += '::'
-                    #print(ppgChunk, ppgCellRow, ppgX, ppgOutput[-2:])
 
             ppgOutput += '\n'
 
     print(ppgOutput)
 
-
 #accepts coordinates of two chunks and returns all chunks within the window.
 def get_chunk_window(gcwUpLeft, gcwDownRight):
-    assert type(gcwUpLeft) in (tuple, list) and len(gcwUpLeft) == 2, 'gcw parameter gcwUpLeft passed invalid argument'
+    assert type(gcwUpLeft) in (tuple, list) and len(gcwUpLeft) == 2, 'gcw parameter gcwUpLeft passed invalid argument' #TODO remove asserts for efficiency
     assert type(gcwDownRight) in (tuple, list) and len(gcwDownRight) == 2, 'gcw parameter gcwDownRight passed invalid argument'
     gcwOutput = []
-    for gcwY, gcwCounter in zip(range(gcwUpLeft[1], gcwDownRight[1]-1, -1), range(99)):
+    for gcwY, gcwCounter in zip(range(gcwUpLeft[1], gcwDownRight[1]-1, -1), range(99)): #idk why range(99) is used. shrug.
         gcwOutput.append([])
-        for gcwX in range(gcwUpLeft[0], gcwDownRight[0]+1):#correct?
+        for gcwX in range(gcwUpLeft[0], gcwDownRight[0]+1):
             gcwOutput[gcwCounter].append((gcwX, gcwY))
     assert gcwOutput != []
     return gcwOutput
 
+
+
+
 #This is from the top of CGOL_search.py
-def str_match(smInput1, smInput2):
+def str_match(smInput1, smInput2): #TODO remove for finished product. only for testing
     smOutput = ''
     for smChar1, smChar2 in zip(smInput1, smInput2):
         if smChar1 == smChar2:
@@ -270,14 +270,32 @@ def str_match(smInput1, smInput2):
             smOutput += '_'
     return smOutput
 
+def append_to_py_dict(atpdFileName, atpdKey, atpdValue):
+    atpdFileObjct = open(atpdFileName, 'r')
+    atpdFileContents = dict(atpdFileObjct.read())
+    atpdFileObjct.close()
+    atpdFileContents[atpdKey] = atpdValue
+    atpdFileObjct = open(atpdFileName, 'w')
+    atpdFileObjct.write(atpdFileContents)
+    atpdFileObjct.close()
 
-#test; delete later
-the_snark = '''#C [[ ZOOM 6 GRID COLOR GRID 192 192 192 COLOR DEADRAMP 255 220 192 COLOR ALIVE 0 0 0 COLOR ALIVERAMP 0 0 0 COLOR DEAD 192 220 255 COLOR BACKGROUND 255 255 255 GPS 10 WIDTH 937 HEIGHT 600 ]]
-x = 65, y = 65, rule = B3/S23
-27b2o$27bobo$29bo4b2o$25b4ob2o2bo2bo$25bo2bo3bobob2o$28bobobobo$29b2obobo$33bo2$19b2o$20bo8bo$20bobo5b2o$21b2o$35bo$36bo$34b3o2$25bo$25b2o$24bobo4b2o22bo$31bo21b3o$32b3o17bo$34bo17b2o2$45bo$46b2o12b2o$45b2o14bo$3b2o56bob2o$4bo9b2o37bo5b3o2bo$2bo10bobo37b2o3bo3b2o$2b5o8bo5b2o35b2obo$7bo13bo22b2o15bo$4b3o12bobo21bobo12b3o$3bo15b2o22bo13bo$3bob2o35b2o5bo8b5o$b2o3bo3b2o37bobo10bo$o2b3o5bo37b2o9bo$2obo56b2o$3bo14b2o$3b2o12b2o$19bo2$11b2o17bo$12bo17b3o$9b3o21bo$9bo22b2o4bobo$38b2o$39bo2$28b3o$28bo$29bo$42b2o$35b2o5bobo$35bo8bo$44b2o2$31bo$30bobob2o$30bobobobo$27b2obobo3bo2bo$27bo2bo2b2ob4o$29b2o4bo$35bobo$36b2o!'''
+'''
+#test; TODO delete later
+from CGOL_game_runner import next_gen
+import time
+from CGOL_test_patterns import master_library
 
+day = 0
+daGrid = master_library['2-engine Cordership']
+while day != 500:
+    print(day)
+    pro_print_grid(daGrid, (0, 3), (8, -2))
+    #time.sleep(0.1)
+    daGrid = next_gen(daGrid)
+    day += 1
+'''
 
-snark_txt = easy_RLE_to_txt(the_snark)
-
-final_snark = txt_to_matrix(snark_txt)
-pro_print_grid(final_snark, (0, 7), (7, 0))
+print(RLE_to_matrix('''#C [[ ZOOM 16 GRID COLOR GRID 192 192 192 GRIDMAJOR 10 COLOR GRIDMAJOR 128 128 128 COLOR DEADRAMP 255 220 192 COLOR ALIVE 0 0 0 COLOR ALIVERAMP 0 0 0 COLOR DEAD 192 220 255 COLOR BACKGROUND 255 255 255 GPS 10 WIDTH 937 HEIGHT 600 ]]
+x = 7, y = 3, rule = B3/S23
+o3b3o$3o2bo$bo!'''))
+#"""

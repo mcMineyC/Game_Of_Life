@@ -1,5 +1,5 @@
 import json, hashlib
-from regexes import grid_paragraph_regex, txt_to_RLE, RLE_regex, comment_to_dict
+from regexes_converts import grid_paragraph_regex, txt_to_RLE, RLE_regex, comment_to_dict
 
 def hasher(MD5Input):
     return hashlib.md5(MD5Input.encode()).hexdigest()

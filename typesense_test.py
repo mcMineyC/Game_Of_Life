@@ -1,4 +1,5 @@
 import typesense, json
+from regexes_converts import get_chunk_window
 
 client = typesense.Client({
     'nodes': [{
@@ -45,8 +46,7 @@ print("Showing pattern "+doc["name"])
 from PIL import Image, ImageDraw
 import copy, CGOL_test_patterns
 from CGOL_game_runner import get_abs_position
-from regexes import RLE_to_matrix
-from snark import snarky
+from regexes_converts import RLE_to_matrix
 
 # blank = [[False] * 64] * 64
 # blank = copy.deepcopy(blank)
@@ -56,7 +56,7 @@ tru = (255,255,255)
 fal = (000,000,000)
 
 
-def pro_print_grid_image(ppgGrid, ppgDownLeft):
+def pro_print_grid_image(ppgGrid, ppgDownLeft): #TODO (this comment made by Connor) remove this func and import from matrix-to-image instead
     i = Image.new("RGB", (64, 64))
     d = ImageDraw.Draw(i)
     d.rectangle([0, 0, 64, 64], fill="#ff0000")
@@ -77,17 +77,6 @@ def pro_print_grid_image(ppgGrid, ppgDownLeft):
 
     return i
 
-
-#accepts coordinates of two chunks and returns all chunks within the window.
-def get_chunk_window(gcwUpLeft, gcwDownRight): #TODO remove asserts to improve speed
-    assert type(gcwUpLeft) in (tuple, list) and len(gcwUpLeft) == 2, 'gcw parameter gcwUpLeft passed invalid argument'
-    assert type(gcwDownRight) in (tuple, list) and len(gcwDownRight) == 2, 'gcw parameter gcwDownRight passed invalid argument'
-    gcwOutput = []
-    for gcwY, gcwCounter in zip(range(gcwUpLeft[1], gcwDownRight[1]-1, -1), range(99)):
-        for gcwX in range(gcwUpLeft[0], gcwDownRight[0]+1):#correct?
-            gcwOutput.append((gcwX, gcwY))
-    #assert gcwOutput != [] #stupid?
-    return gcwOutput
 
 def matrixToImage(matrix, aliveColor, deadColor):
     i = Image.new("RGB", (64, 64))

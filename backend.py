@@ -1,7 +1,7 @@
 from flask import Flask, request
 from flask_cors import CORS, cross_origin
 import json, typesense
-import regexes
+import regexes_converts
 
 client = typesense.Client({
     'nodes': [{
