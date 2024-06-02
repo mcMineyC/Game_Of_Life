@@ -41,6 +41,7 @@ def get_srnd_cells(gscXY, gscIsNew, gscMasterGrid): #gscIsNew cuts off unecessar
             gscCell = get_rltv_position(gscX, gscY)
             if gscMasterGrid[gscCell[0]][gscCell[1]][gscCell[2]] and not gscIsNew:  # Check if cell is live and if chunk is new
                 # Open an empty chunk
+                #TODO newChunks is a dictionary. It should be a list.
                 gscNewChunks[gscOuterCell[0]] = copy.deepcopy(empty_chunk)
                 #TODO Optimize: program unecessarily opens 3 chunks when processing a cell in the corner of a chunk.
 
