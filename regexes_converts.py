@@ -113,7 +113,10 @@ def matrix_to_txt(mttGrid):
     mttWidth = (mttRightMost-mttLeftMost+1)*8
 
     #create empty plaintext grid
-    mttOutput = [['.'] * mttWidth] * mttHeight
+    mttOutput = []
+    for _ in range(mttHeight):
+        mttOutput.append(['.'] * mttWidth)
+    #mttOutput = [['.'] * mttWidth] * mttHeight
     #print(mttOutput)
     print(mttHeight, mttWidth)
     print()
@@ -124,7 +127,9 @@ def matrix_to_txt(mttGrid):
             for mttY in range(8):
                 if mttGrid[mttChunk][mttX][mttY]:
                     mttTxtPosition = get_abs_position(mttChunk, mttX, mttY)
+                    print(mttTxtPosition)
                     mttOutput[mttTxtPosition[0]][mttTxtPosition[1]] = '*'
+
     #TODO shave empty edges
     #convert to string
     mttOutputStr = ''
@@ -132,7 +137,6 @@ def matrix_to_txt(mttGrid):
         mttOutputStr += ''.join(mttLine) + '\n'
     #TODO shave final '\n'
     return mttOutputStr
-
 
 
 

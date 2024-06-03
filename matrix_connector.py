@@ -36,7 +36,7 @@ matrix = RGBMatrix(options = options)
 matrix.Clear()
 matrix.SetImage(im, 0, 0)
 """
-
+print(sys.argv)
 socket_path = '/tmp/matrix_connector'
 
 class ScrewyError(Exception):
@@ -73,7 +73,7 @@ while True:
                 options.chain_length = 1
                 options.parallel = 1
                 options.hardware_mapping = 'regular'  # If you have an Adafruit HAT: 'adafruit-hat'
-
+                options.disable_hardware_pulsing = True
                 matrix = RGBMatrix(options = options)
                 matrix.Clear()
                 matrix.SetImage(inn, 0, 0)
