@@ -18,7 +18,7 @@ grid_paragraph_regex = re.compile(r"\n:([^\t\n:]+):([^\t\n]+\n)*((\t[\*\.]{2,}\n
 
 grid_regex = re.compile(r'((\t[\*\.]{2,}\n)+)')#findall() works, but adds an extra line to the end. Fixable?
 
-line_regex = re.compile(r'\t?([\*\.]{2,})\n') #only matches plaintext patterns whose live/dead characters are */. #IMPORTANT will not match final line uless final line ends with '\n'
+line_regex = re.compile(r'\t?([\*\.]{2,})\n') #only matches plaintext patterns whose live/dead characters are */. #IMPORTANT will not match final line unless final line ends with '\n'
 
 whitespace_regex = re.compile(r'\s')
 
@@ -96,6 +96,45 @@ def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
 
 #TODO make function that converts matrix to txt
 def matrix_to_txt(mttGrid):
+    def get_abs_position(gapChunk, gapX, gapY):
+        return (int(gapChunk[0]) * 8 + int(gapX), int(gapChunk[1]) * 8 + int(gapY))
+    
+    #find bounds of grid by checking all chunks and recording the furthest ones
+    mttUpMost = tuple(mttGrid.keys())[0][1]
+    mttDownMost = tuple(mttGrid.keys())[0][1]
+    mttLeftMost = tuple(mttGrid.keys())[0][0]
+    mttRightMost = tuple(mttGrid.keys())[0][0]
+    for mttChunk in mttGrid:
+        if mttChunk[1] > mttUpMost: mttUpMost = mttChunk[1]
+        elif mttChunk[1] < mttDownMost: mttDownMost = mttChunk[1]
+        if mttChunk[0] > mttRightMost: mttRightMost = mttChunk[0]
+        elif mttChunk[0] < mttLeftMost: mttLeftMost = mttChunk[0]
+    mttHeight = (mttUpMost-mttDownMost+1)*8
+    mttWidth = (mttRightMost-mttLeftMost+1)*8
+
+    #create empty plaintext grid
+    mttOutput = [['.'] * mttWidth] * mttHeight
+    #print(mttOutput)
+    print(mttHeight, mttWidth)
+    print()
+    #mttOutput = ('.' * (mttRightMost-mttLeftMost+1)*8 + '\n') * (mttUpMost-mttDownMost+1)*8
+    #fill in live cells
+    for mttChunk in mttGrid:
+        for mttX in range(8):
+            for mttY in range(8):
+                if mttGrid[mttChunk][mttX][mttY]:
+                    mttTxtPosition = get_abs_position(mttChunk, mttX, mttY)
+                    mttOutput[mttTxtPosition[0]][mttTxtPosition[1]] = '*'
+    #TODO shave empty edges
+    #convert to string
+    mttOutputStr = ''
+    for mttLine in mttOutput:
+        mttOutputStr += ''.join(mttLine) + '\n'
+    #TODO shave final '\n'
+    return mttOutputStr
+
+
+
 
 #converts txt to RLE and provides meta-data comments:
 def txt_to_RLE(ttrInput):
@@ -297,7 +336,7 @@ while day != 550:
     day += 1
 '''
 """
-print(RLE_to_matrix('''#C [[ ZOOM 16 GRID COLOR GRID 192 192 192 GRIDMAJOR 10 COLOR GRIDMAJOR 128 128 128 COLOR DEADRAMP 255 220 192 COLOR ALIVE 0 0 0 COLOR ALIVERAMP 0 0 0 COLOR DEAD 192 220 255 COLOR BACKGROUND 255 255 255 GPS 10 WIDTH 937 HEIGHT 600 ]]
-x = 7, y = 3, rule = B3/S23
-o3b3o$3o2bo$bo!'''))
+from CGOL_test_patterns import master_library
+
+print(matrix_to_txt(master_library['snark loop']))
 #"""
