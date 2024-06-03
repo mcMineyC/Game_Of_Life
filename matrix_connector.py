@@ -88,6 +88,7 @@ while True:
         connection.sendall(response.encode())
     finally:
         # close the connection
-        connection.close()
+        # connection.close()
         # remove the socket file
         # os.unlink(socket_path)
+        pass
