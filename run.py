@@ -19,11 +19,10 @@ for x in range(500):
     message = message.getvalue()
     client.sendall(message)
     response = client.recv(1024)
-    client.close()
     response = json.loads(response)
     if(response["success"]):
         print("Image successfully sent!!!! :partying-face:")
     else:
         raise Exception("Something bad happened in the matrix connector")
     curr_grid = n_gen
-
+    time.sleep(5)

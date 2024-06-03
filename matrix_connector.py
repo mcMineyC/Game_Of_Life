@@ -56,14 +56,14 @@ server.listen(1)
 while True:
     print('Server is listening for incoming connections...')
     connection, client_address = server.accept()
-
+    
     try:
         while True:
             data = connection.recv(1024)
             if not data:
                 break
             inn = Image.open(io.BytesIO(data))
-            if sys.argv[1]:
+            if len(sys.argv) >= 2 and sys.argv[1] == "yes":
                 from rgbmatrix import RGBMatrix, RGBMatrixOptions
 
                 # Configuration for the matrix
@@ -86,9 +86,3 @@ while True:
         print("Ooop, error happened")
         response = json.dumps({"success": False})
         connection.sendall(response.encode())
-    finally:
-        # close the connection
-        # connection.close()
-        # remove the socket file
-        # os.unlink(socket_path)
-        pass
