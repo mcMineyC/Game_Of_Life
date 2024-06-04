@@ -13,8 +13,8 @@ RGB_LIBRARY=$(RGB_LIBDIR)/lib$(RGB_LIBRARY_NAME).a
 LDFLAGS+=-L$(RGB_LIBDIR) -l$(RGB_LIBRARY_NAME) -lrt -lm -lpthread
 
 # To compile image-example
-MAGICK_CXXFLAGS?=$(shell Magick++-config --cppflags --cxxflags)
-MAGICK_LDFLAGS?=$(shell Magick++-config --ldflags --libs)
+MAGICK_CXXFLAGS?=$(shell GraphicsMagick++-config --cppflags --cxxflags)
+MAGICK_LDFLAGS?=$(shell GraphicsMagick++-config --ldflags --libs)
 
 all : $(BINARIES)
 
@@ -37,10 +37,10 @@ pixel-mover : pixel-mover.o
 	$(CXX) $< -o $@ $(LDFLAGS)
 
 image-example.o : image-example.cc
-	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) $(MAGICK_CXXFLAGS) -c -o $@ $<
+	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) -c -o $@ $<
 
 image-example: image-example.o $(RGB_LIBRARY)
-	$(CXX) $< -o $@ $(LDFLAGS) $(MAGICK_LDFLAGS)
+	$(CXX) $< -o $@ $(LDFLAGS)
 
 matrix.o : connector.c++
 	$(CXX) -ljsoncpp -I$(RGB_INCDIR) $(CXXFLAGS) $(MAGICK_CXXFLAGS) -c -o $@ $<
