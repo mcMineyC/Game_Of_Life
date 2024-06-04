@@ -1,4 +1,4 @@
-import socket, io, json, struct
+import socket, io, json, struct, random
 import matrix_to_image
 import CGOL_test_patterns
 
@@ -17,7 +17,7 @@ data = {
 o = ""
 for y in range(64):
     for x in range(64):
-        o += ("1" if (y%2 == 0) else "0")
+        o += ("1" if (y%2 == 0 and random.randint(0,1) == 1) else "0")
     o += "\n" if (y != 63) else ""
 data["now"] = o
 data_bytes = json.dumps(data).encode("utf-8")
