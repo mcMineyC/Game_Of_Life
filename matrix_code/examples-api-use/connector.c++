@@ -130,23 +130,20 @@ int main(int argc, char* argv[]) {
             exit(-1);
         }else if (rc == 0) {
             std::cout << "All done\trc: " << rc << "\nRead in:\n" << total_data << "\nSize: "<< total_data.size() <<"\n";
-            Json::Value data;
-            Json::Reader reader;
-            if(reader.parse(total_data, data)){
-                string now = data["now"].asString();
-                vector lines = splitString(now);
-                for(size_t y = 0; y < lines.size(); y++){
-                    string line = lines[y];
-                    for(size_t x = 0; x < line.size(); x++){
-                        std::cout << line[x];
-                        if(pi){
-                            int res = line[x] == '0' ? 0 : 255;
-                            //              x   y  red green blue
-                            canvas->SetPixel(x, y, res, res, res);
-                        }
+            string now = total_data;
+            vector lines = splitString(now);
+            for(size_t y = 0; y < lines.size(); y++){
+                string line = lines[y];
+                for(size_t x = 0; x < line.size(); x++){
+                    std::cout << line[x];
+                    if(pi){
+                        int res = line[x] == '0' ? 0 : 255;
+                        //              x   y  red green blue
+                        canvas->SetPixel(x, y, res, res, res);
                     }
                 }
             }
+
             if(pi){
                 canvas = matrix->SwapOnVSync(canvas);
             }
