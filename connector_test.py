@@ -1,4 +1,4 @@
-import socket, io, json
+import socket, io, json, struct
 import matrix_to_image
 import CGOL_test_patterns
 
@@ -19,12 +19,19 @@ i.save(message, "PNG")
 message = message.getvalue()
 client.sendall(message)
 """
+data = {
+    "now": "",
+    "next": "",
+}
 o = ""
-for x in range(64):
-    for y in range(64):
-        o += "1"
-    o += "\n"
-client.sendall(o.encode())
+for y in range(64):
+    for x in range(64):
+        o += ("1" if (y%2 == 0) else "0")
+    o += "\n" if (y != 63) else ""
+data["now"] = o
+data_bytes = json.dumps(data).encode("utf-8")
+client.sendall(struct.pack("!I", len(data_bytes)))
+client.sendall(data_bytes)
 print("sent")
 # Receive a response from the server
 response = client.recv(1024)
