@@ -11,17 +11,8 @@ client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 # Connect to the server
 client.connect(socket_path)
 
-"""
-# Send a message to the server
-i = matrix_to_image.pro_print_grid_image(CGOL_test_patterns.master_library["snark loop"], (0, 0))
-message = io.BytesIO()
-i.save(message, "PNG")
-message = message.getvalue()
-client.sendall(message)
-"""
 data = {
     "now": "",
-    "next": "",
 }
 o = ""
 for y in range(64):
