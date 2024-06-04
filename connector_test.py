@@ -1,5 +1,4 @@
 import socket, io, json, struct, random
-import matrix_to_image
 import CGOL_test_patterns
 
 

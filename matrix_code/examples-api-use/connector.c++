@@ -92,18 +92,20 @@ int main(int argc, char* argv[]) {
         matrix = RGBMatrix::CreateFromOptions(matrix_options, runtime_opt);
         canvas = matrix->CreateFrameCanvas();
     }
+    cl = accept(fd, NULL, NULL);
+    if (cl == -1) {
+        std::cerr << "accept error" << std::endl;
+        exit(-1);
+    }else{
+        std::cout << "Got connection\n";
+    }
     while (true) {
         std::cout << "Server is listening for incoming connections..." << std::endl;
-
-        if ((cl = accept(fd, NULL, NULL)) == -1) {
-            std::cerr << "accept error" << std::endl;
-            continue;
-        }
 
         uint32_t length;
         if (read(cl, &length, sizeof(length)) != sizeof(length)) {
             std::cerr << "read error";
-            continue;
+            exit(1);
         }
         length = ntohl(length);
         std::cout << "Expecting message of length: " << length << std::endl;
@@ -127,7 +129,7 @@ int main(int argc, char* argv[]) {
         }
         if (rc == -1) {
             std::cerr << "read error";
-            exit(-1);
+            exit(1);
         }else if (rc == 0) {
             std::cout << "All done\trc: " << rc << "\nRead in:\n" << total_data << "\nSize: "<< total_data.size() <<"\n";
             string now = total_data;
@@ -153,7 +155,7 @@ int main(int argc, char* argv[]) {
             Json::StreamWriterBuilder writer;
             std::string response = Json::writeString(writer, root);
             send(cl, response.c_str(), response.size(), 0);
-            close(cl);
+            // close(cl);
         }
     }
 
