@@ -1,7 +1,7 @@
 import CGOL_game_runner as runner
 import CGOL_test_patterns as tp
-import socket, io, json, time
-import matrix_to_image
+import socket, json, time, struct
+from regexes_converts import grid_to_string as pro_print_grid
 
 
 socket_path = '/tmp/matrix_connector'
@@ -12,12 +12,20 @@ curr_grid = tp.master_library["snark loop"]
 gen = 0
 for x in range(500):
     n_gen = runner.next_gen(curr_grid)
+    strr = pro_print_grid(n_gen, (0, 4), (4, 0))
+    print()
+    print(strr)
     gen+=1
-    i = matrix_to_image.pro_print_grid_image(n_gen, (0, 0))
-    message = io.BytesIO()
-    i.save(message, "PNG")
-    message = message.getvalue()
-    client.sendall(message)
+    message = strr.encode("utf-8")
+    print("Sending message of length: " + str(len(message)))
+    try:
+        print("Sending message length...")
+        client.sendall(struct.pack("!I", len(message)))
+        print("Sending message...")
+        client.sendall(message)
+    except:
+        print("Error sending message.")
+        exit(1)
     response = client.recv(1024)
     response = json.loads(response)
     if(response["success"]):
@@ -25,4 +33,4 @@ for x in range(500):
     else:
         raise Exception("Something bad happened in the matrix connector")
     curr_grid = n_gen
-    time.sleep(5)
+    time.sleep(0.5)

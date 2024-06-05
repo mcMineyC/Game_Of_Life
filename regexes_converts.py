@@ -291,6 +291,24 @@ def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
 
     print(ppgOutput)
 
+def grid_to_string(ppgGrid, ppgUpLeft, ppgDownRight):
+    
+    output = ""
+    ppgOutput = ''
+    for ppgChunkRow in get_chunk_window(ppgUpLeft, ppgDownRight):
+        for ppgCellRow in range(7, -1, -1):
+            for ppgChunk in ppgChunkRow:
+                for ppgX in range(8):
+                    if ppgChunk in ppgGrid:
+                        ppgOutput = ppgOutput + ('1' if ppgGrid[ppgChunk][ppgX][ppgCellRow] else '0')
+                    else:
+                        ppgOutput += '0'
+
+            ppgOutput += '\n'
+            print()
+            output += ppgOutput
+    return output
+
 #accepts coordinates of two chunks and returns all chunks within the window.
 def get_chunk_window(gcwUpLeft, gcwDownRight):
     assert type(gcwUpLeft) in (tuple, list) and len(gcwUpLeft) == 2, 'gcw parameter gcwUpLeft passed invalid argument' #TODO remove asserts for efficiency
