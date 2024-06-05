@@ -291,6 +291,7 @@ def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
     print(ppgOutput)
 
 def grid_to_string(ppgGrid, ppgUpLeft, ppgDownRight):
+    
     output = ""
     ppgOutput = ''
     for ppgChunkRow in get_chunk_window(ppgUpLeft, ppgDownRight):
@@ -303,6 +304,7 @@ def grid_to_string(ppgGrid, ppgUpLeft, ppgDownRight):
                         ppgOutput += '0'
 
             ppgOutput += '\n'
+            print()
             output += ppgOutput
     return output
 
