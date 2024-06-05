@@ -30,7 +30,7 @@ RLE_thing = """#C [[ ZOOM 16 GRID COLOR GRID 192 192 192 COLOR DEADRAMP 255 220 
 x = 65, y = 65, rule = B3/S23
 27b2o$27bobo$29bo4b2o$25b4ob2o2bo2bo$25bo2bo3bobob2o$28bobobobo$29b2obobo$33bo2$19b2o$20bo8bo$20bobo5b2o$21b2o$35bo$36bo$34b3o2$25bo$25b2o$24bobo4b2o22bo$31bo21b3o$32b3o17bo$34bo17b2o2$45bo$46b2o12b2o$45b2o14bo$3b2o56bob2o$4bo9b2o37bo5b3o2bo$2bo10bobo37b2o3bo3b2o$2b5o8bo5b2o35b2obo$7bo13bo22b2o15bo$4b3o12bobo21bobo12b3o$3bo15b2o22bo13bo$3bob2o35b2o5bo8b5o$b2o3bo3b2o37bobo10bo$o2b3o5bo37b2o9bo$2obo56b2o$3bo14b2o$3b2o12b2o$19bo2$11b2o17bo$12bo17b3o$9b3o21bo$9bo22b2o4bobo$38b2o$39bo2$28b3o$28bo$29bo$42b2o$35b2o5bobo$35bo8bo$44b2o2$31bo$30bobob2o$30bobobobo$27b2obobo3bo2bo$27bo2bo2b2ob4o$29b2o4bo$35bobo$36b2o!"""
 
-#zoom is the most unpredictable value
+#zoom is the most unpredictable value TODO change default values to something mono
 default_RLE_comment = '#C [[ ZOOM 16 GRID COLOR GRID 192 192 192 COLOR DEADRAMP 255 220 192 COLOR ALIVE 0 0 0 COLOR ALIVERAMP 0 0 0 COLOR DEAD 192 220 255 COLOR BACKGROUND 255 255 255 GPS 10 WIDTH 937 HEIGHT 600 ]]\n'
 
 comment_regex = re.compile(r'#C \[\[ .+ \]\]')
@@ -94,10 +94,11 @@ def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
     for arttLine in arttOutputLines: assert len(arttLine) == arttXBound, str(len(arttLine)) + ' != ' + str(arttXBound)
     return arttOutput[:-1] #remove extra '\n' at the end of str
 
-#TODO make function that converts matrix to txt
+#converts list matrix to plaintext
 def matrix_to_txt(mttGrid):
-    def get_abs_position(gapChunk, gapX, gapY):
-        return (int(gapChunk[0]) * 8 + int(gapX), int(gapChunk[1]) * 8 + int(gapY))
+    #inverts Y axis
+    def get_abs_positionY(gapChunk, gapX, gapY, gapYHeight):
+        return (gapChunk[0] * 8 + gapX, gapYHeight - (gapChunk[1] * 8 + gapY) -1) #TODO this does not work
     
     #find bounds of grid by checking all chunks and recording the furthest ones
     mttUpMost = tuple(mttGrid.keys())[0][1]
@@ -114,29 +115,29 @@ def matrix_to_txt(mttGrid):
 
     #create empty plaintext grid
     mttOutput = []
-    for _ in range(mttHeight):
-        mttOutput.append(['.'] * mttWidth)
+    for mttRow in range(mttHeight): mttOutput.append(['.'] * mttWidth) # needs to copy deeper?
     #mttOutput = [['.'] * mttWidth] * mttHeight
-    #print(mttOutput)
     print(mttHeight, mttWidth)
-    print()
     #mttOutput = ('.' * (mttRightMost-mttLeftMost+1)*8 + '\n') * (mttUpMost-mttDownMost+1)*8
+
     #fill in live cells
     for mttChunk in mttGrid:
         for mttX in range(8):
             for mttY in range(8):
                 if mttGrid[mttChunk][mttX][mttY]:
-                    mttTxtPosition = get_abs_position(mttChunk, mttX, mttY)
-                    print(mttTxtPosition)
-                    mttOutput[mttTxtPosition[0]][mttTxtPosition[1]] = '*'
-
+                    mttTxtPosition = get_abs_positionY(mttChunk, mttX, mttY, mttHeight)
+                    try:
+                        mttOutput[mttTxtPosition[0]][mttTxtPosition[1]] = '*'
+                    except:
+                        print('error! This position does not exist: [%s][%s]' % (mttTxtPosition[0], mttTxtPosition[1]))
     #TODO shave empty edges
+
     #convert to string
     mttOutputStr = ''
-    for mttLine in mttOutput:
-        mttOutputStr += ''.join(mttLine) + '\n'
-    #TODO shave final '\n'
-    return mttOutputStr
+    for mttLine in mttOutput: mttOutputStr += ''.join(mttLine) + '\n'
+
+    return mttOutputStr[:-1] # shave final '\n'
+
 
 
 
@@ -342,5 +343,5 @@ while day != 550:
 """
 from CGOL_test_patterns import master_library
 
-print(matrix_to_txt(master_library['snark loop']))
+print(matrix_to_txt(master_library['glider']))
 #"""

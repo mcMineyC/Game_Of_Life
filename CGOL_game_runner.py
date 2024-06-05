@@ -117,3 +117,4 @@ def next_gen(ngInputGrid):
 #TODO: Optimization: make loops shorter, e.g. use while instead of for. Remove unecessary variables and asserts (such as the one in get_window(). What else?
 #TODO speed test
 #TODO give iterators similar names for optimization?
+#TODO optimize remove int() from position convert functions
