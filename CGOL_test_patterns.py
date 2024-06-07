@@ -1,5 +1,5 @@
 #These are test patterns for running in CGOL_game_runner.py
-#Note that patterns will appear "sideways" if you try to draw it by eyeballing the list matrix.
+#NOTE that patterns will appear "sideways" if you try to draw it by eyeballing the list matrix.
 #The list matrix as seen onscreen is a 90 degree rotation of the actual grid.
 
 import pprint

@@ -95,11 +95,7 @@ def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
     return arttOutput[:-1] #remove extra '\n' at the end of str
 
 #converts list matrix to plaintext
-def matrix_to_txt(mttGrid):
-    #inverts Y axis
-    def get_abs_positionY(gapChunk, gapX, gapY, gapYHeight):
-        return (gapChunk[0] * 8 + gapX, gapYHeight - (gapChunk[1] * 8 + gapY) -1) #TODO this does not work
-    
+def matrix_to_txt(mttGrid): #TODO this func fails because it assumes that the lower left chunk is always at (0, 0), when really it could be anywhere.
     #find bounds of grid by checking all chunks and recording the furthest ones
     mttUpMost = tuple(mttGrid.keys())[0][1]
     mttDownMost = tuple(mttGrid.keys())[0][1]
@@ -113,28 +109,31 @@ def matrix_to_txt(mttGrid):
     mttHeight = (mttUpMost-mttDownMost+1)*8
     mttWidth = (mttRightMost-mttLeftMost+1)*8
 
+    print(mttWidth, mttHeight)
+
     #create empty plaintext grid
     mttOutput = []
     for mttRow in range(mttHeight): mttOutput.append(['.'] * mttWidth) # needs to copy deeper?
-    #mttOutput = [['.'] * mttWidth] * mttHeight
-    print(mttHeight, mttWidth)
-    #mttOutput = ('.' * (mttRightMost-mttLeftMost+1)*8 + '\n') * (mttUpMost-mttDownMost+1)*8
 
     #fill in live cells
     for mttChunk in mttGrid:
         for mttX in range(8):
             for mttY in range(8):
                 if mttGrid[mttChunk][mttX][mttY]:
-                    mttTxtPosition = get_abs_positionY(mttChunk, mttX, mttY, mttHeight)
-                    try:
-                        mttOutput[mttTxtPosition[0]][mttTxtPosition[1]] = '*'
-                    except:
-                        print('error! This position does not exist: [%s][%s]' % (mttTxtPosition[0], mttTxtPosition[1]))
+                    try: #overshoots index by 1?
+                        mttOutput[mttChunk[0] * 8 + mttX][mttChunk[1] * 8 + mttY] = '*' #basically uses abs pos but not from func.
+                    except IndexError:
+                        print('IndexError. These coords out of range: %s %s' % (mttChunk[0] * 8 + mttX, mttChunk[1] * 8 + mttY))
+                        print(mttChunk, mttX, mttY)
+
     #TODO shave empty edges
 
-    #convert to string
+    #convert to string.
     mttOutputStr = ''
-    for mttLine in mttOutput: mttOutputStr += ''.join(mttLine) + '\n'
+    for mttY in range(len(mttOutput[0])-1, -1, -1): #inverts Y
+        for mttX in range(len(mttOutput)):
+            mttOutputStr += mttOutput[mttX][mttY]
+        mttOutputStr += '\n'
 
     return mttOutputStr[:-1] # shave final '\n'
 
@@ -274,6 +273,8 @@ def txt_to_matrix(ttmGrid):
 def RLE_to_matrix(rle):
     return txt_to_matrix(easy_RLE_to_txt(rle))
 
+#TODO matrix to RLE
+
 #Permanantly borrowed™ from CGOL_game_runner
 #accepts grid and window for camera, prints grid to terminal.
 def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
@@ -291,23 +292,22 @@ def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
 
     print(ppgOutput)
 
-def grid_to_string(ppgGrid, ppgUpLeft, ppgDownRight):
-    
-    output = ""
-    ppgOutput = ''
-    for ppgChunkRow in get_chunk_window(ppgUpLeft, ppgDownRight):
-        for ppgCellRow in range(7, -1, -1):
-            for ppgChunk in ppgChunkRow:
-                for ppgX in range(8):
-                    if ppgChunk in ppgGrid:
-                        ppgOutput = ppgOutput + ('1' if ppgGrid[ppgChunk][ppgX][ppgCellRow] else '0')
+#This is sort of a combo of matrix_to_txt and pro_print_grid. It accepts a list-matrix, the coord of a chunk (camera window position), and
+#returns a 64x64 plaintext grid.
+def grid_to_string(gtsGrid, gtsCamDownLeft):
+    gtsOutput = ''
+    for gtsChunkRow in get_chunk_window((gtsCamDownLeft[0], gtsCamDownLeft[1]+7), (gtsCamDownLeft[0]+7, gtsCamDownLeft[1])):
+        for gtsCellRow in range(7, -1, -1):
+            for gtsChunk in gtsChunkRow:
+                for gtsX in range(8):
+                    if gtsChunk in gtsGrid:
+                        gtsOutput += ('1' if gtsGrid[gtsChunk][gtsX][gtsCellRow] else '0')
                     else:
-                        ppgOutput += '0'
+                        gtsOutput += '0'
 
-            ppgOutput += '\n'
-            print()
-            output += ppgOutput
-    return output
+            gtsOutput += '\n'
+    return gtsOutput
+
 
 #accepts coordinates of two chunks and returns all chunks within the window.
 def get_chunk_window(gcwUpLeft, gcwDownRight):
@@ -358,8 +358,9 @@ while day != 550:
     daGrid = next_gen(daGrid)
     day += 1
 '''
-"""
-from CGOL_test_patterns import master_library
 
-print(matrix_to_txt(master_library['glider']))
+from CGOL_test_patterns import master_library
+daGriddy = master_library['2-engine Cordership']
+print(matrix_to_txt(daGriddy))
+pro_print_grid(daGriddy, (0, 1), (7, 0))
 #"""

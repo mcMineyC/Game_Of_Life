@@ -61,7 +61,7 @@ def pro_print_grid_image(ppgGrid, ppgDownLeft): #TODO (this comment made by Conn
     d = ImageDraw.Draw(i)
     d.rectangle([0, 0, 64, 64], fill="#ff0000")
 
-    for ppgChunk, ppgCamChunk in zip(get_chunk_window((ppgDownLeft[0], ppgDownLeft[1]+7), (ppgDownLeft[0]+7, ppgDownLeft[1])), get_chunk_window((0, 7), (7, 0))):
+    for ppgChunk, ppgCamChunk in zip(get_chunk_window((ppgDownLeft[0], ppgDownLeft[1]+7), (ppgDownLeft[0]+7, ppgDownLeft[1])), get_chunk_window((0, 7), (7, 0))): #TODO this doesn't work because it uses regexes_converts.get_chunk_window instead of matrix_to_image.get_chunk_window_list. As said in previous TODO, just import this whole func from matrix_to_image.
         for ppgY in range(8):
                 for ppgX in range(8):
 
