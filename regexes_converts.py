@@ -114,19 +114,24 @@ def matrix_to_txt(mttGrid): #TODO this func fails because it assumes that the lo
     #create empty plaintext grid
     mttOutput = []
     for mttRow in range(mttHeight): mttOutput.append(['.'] * mttWidth) # needs to copy deeper?
+    print(len(mttOutput), len(mttOutput[0]))
 
     #fill in live cells
     for mttChunk in mttGrid:
+        #compensates chunk positions in mttOutput.
+        mttZeroedChunk = (mttChunk[0] - mttDownMost, mttChunk[1] - mttLeftMost)
         for mttX in range(8):
             for mttY in range(8):
                 if mttGrid[mttChunk][mttX][mttY]:
                     try: #overshoots index by 1?
-                        mttOutput[mttChunk[0] * 8 + mttX][mttChunk[1] * 8 + mttY] = '*' #basically uses abs pos but not from func.
+                        mttOutput[mttZeroedChunk[0] * 8 + mttX][mttZeroedChunk[1] * 8 + mttY] = '*' #basically uses abs pos.
                     except IndexError:
                         print('IndexError. These coords out of range: %s %s' % (mttChunk[0] * 8 + mttX, mttChunk[1] * 8 + mttY))
-                        print(mttChunk, mttX, mttY)
+                        print(mttChunk, mttZeroedChunk, mttX, mttY)
 
     #TODO shave empty edges
+
+    print(len(mttOutput), len(mttOutput[0]))
 
     #convert to string.
     mttOutputStr = ''
@@ -362,5 +367,5 @@ while day != 550:
 from CGOL_test_patterns import master_library
 daGriddy = master_library['2-engine Cordership']
 print(matrix_to_txt(daGriddy))
-pro_print_grid(daGriddy, (0, 1), (7, 0))
+pro_print_grid(daGriddy, (0, 6), (7, 0))
 #"""
