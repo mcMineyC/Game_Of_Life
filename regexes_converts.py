@@ -16,6 +16,7 @@ empty_chunk = [[False] * 8] * 8
 
 #                                      :(name_____):(paragraph_) (grid lines_______)
 grid_paragraph_regex = re.compile(r"\n:([^\t\n:]+):([^\t\n]+\n)*((\t[\*\.]{2,}\n)+)")
+#group[0] is name, group[2] is full plaintext pattern.
 #This regex seems to operate 100% correctly, but it is a good idea to triple-check it.
 
 grid_regex = re.compile(r'((\t[\*\.]{2,}\n)+)')#findall() works, but adds an extra line to the end. Fixable?
