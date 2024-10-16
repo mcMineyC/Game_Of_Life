@@ -67,7 +67,7 @@ def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
         if  char in ('\n', '\t', ' '):
             continue
         if char in digits:
-            arttInt += char
+            arttInt += str(char)
 
         elif char == '$':
             if arttInt == '': arttInt = '1'
@@ -316,8 +316,26 @@ def get_chunk_window(gcwUpLeft, gcwDownRight):
     assert gcwOutput != []
     return gcwOutput
 
-
-
+def sizer(rle):
+    splitter = re.compile(r"\d*[ob\$]")
+    lineIndex = 0
+    lineLengths = []
+    for charSet in splitter.findall(rle):
+        s = charSet
+        if(len(s) == 1): s = "1" + s
+        print("have thing " + s[:-1])
+        match(s[:-1]):
+            case "o":
+                print("Length is "+s[-1:])
+                lineLengths[lineIndex] += int(s[-1:])
+            case "b":
+                print("Length is "+s[-1:])
+                lineLengths[lineIndex] += int(s[-1:])
+            case "$":
+                lineIndex += 1
+            case _:
+                print("Meh i got something weird")
+    return (max(lineLengths), lineIndex+1)
 
 '''
 #test; TODO delete later
