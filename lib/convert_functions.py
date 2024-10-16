@@ -38,7 +38,7 @@ def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
         if  char in ('\n', '\t', ' '):
             continue
         if char in r.digits:
-            arttInt += char
+            arttInt += str(char)
 
         elif char == '$':
             if arttInt == '': arttInt = '1'

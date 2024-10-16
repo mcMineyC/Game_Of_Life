@@ -47,6 +47,21 @@ def get_pattern_by_id():
         print("Error: Pattern not found")
         return json.dumps({"success": False, "error": "Pattern not found"})
 
+@app.route('/patterns/create', methods=["POST", "GET"])
+@cross_origin()
+def create_pattern():
+    success = False
+    size = regexes_converts.sizer("bo$23bo$3o4b!")
+    print(size)
+    newPattern = {
+        # "hash": compiler.hasher(request.form["name"] + request.form["rle"]),
+        # "name": request.form["name"],
+        # "creator_name": request.form["creator_name"],
+        "xbound": 0,
+        "ybound": 0,
+        # "rle": request.form["rle"]
+    }
+    return json.dumps({"success": success})
 
 @app.route('/lexicon/get-named')
 @cross_origin()
