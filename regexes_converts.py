@@ -4,7 +4,7 @@
 #TODO check for consistency in cell values and such
 #NOTE: prefix all the regex strings with r to avoid escape character issues.
 #      idk why this happens but it does. I found a random stackoverflow post
-#      that said to do it and it worked. I added it to all current regexes 
+#      that said to do it and it worked. I added it to all current regexes
 #      just make sure when you add new ones you do it too.  Example: r'(\d+)'
 
 #NOTE do not include a newline at the end of a custom CGOL comment
@@ -80,13 +80,13 @@ def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
             arttOutput += '.' * (arttXBound-arttCharsInLine) + '\n'
             break
 
-        else:# o is live, b is dead. Anything that is not b will be treated as o. 
+        else:# o is live, b is dead. Anything that is not b will be treated as o.
             arttState = '.' if char == 'b' else '*'
             if arttInt == '': arttInt = '1'
             arttOutput += arttState * int(arttInt)
             arttCharsInLine += int(arttInt)
             arttInt = ''
-    
+
     #ensure that output is not flawed via asserts
     arttOutputLines = line_regex.findall(arttOutput)
     assert len(arttOutputLines) == arttYBound, str(len(arttOutputLines)) + ' != ' + str(arttYBound)
@@ -210,7 +210,7 @@ def comment_to_dict(ctdInput):
         ctdItem[0] = ctdItem[0].replace(' ', '_') #remove spaces from values
         if len(ctdItem[1]) == 1:        #convert single item lists to items eg. numbers
             ctdItem[1] = ctdItem[1][0]
-    
+
     ctdOutput = {}
     for ctdItem in ctdList4Output:
         ctdOutput[ctdItem[0]] = ctdItem[1]
@@ -289,16 +289,16 @@ def pro_print_grid(ppgGrid, ppgUpLeft, ppgDownRight):
 
 #This is sort of a combo of matrix_to_txt and pro_print_grid. It accepts a list-matrix, the coord of a chunk (camera window position), and
 #returns a 64x64 plaintext grid.
-def grid_to_string(gtsGrid, gtsCamDownLeft):
+def grid_to_string(gtsGrid, gtsUpLeft, gtsDownRight):
     gtsOutput = ''
-    for gtsChunkRow in get_chunk_window((gtsCamDownLeft[0], gtsCamDownLeft[1]+7), (gtsCamDownLeft[0]+7, gtsCamDownLeft[1])):
+    for gtsChunkRow in get_chunk_window(gtsUpLeft, gtsDownRight):
         for gtsCellRow in range(7, -1, -1):
             for gtsChunk in gtsChunkRow:
                 for gtsX in range(8):
                     if gtsChunk in gtsGrid:
-                        gtsOutput += ('1' if gtsGrid[gtsChunk][gtsX][gtsCellRow] else '0')
+                        gtsOutput = gtsOutput + ('1' if gtsGrid[gtsChunk][gtsX][gtsCellRow] else '0') # Loaded chunks
                     else:
-                        gtsOutput += '0'
+                        gtsOutput += '0' # Unloaded chunk
 
             gtsOutput += '\n'
     return gtsOutput
@@ -342,7 +342,6 @@ def sizer(rle):
 from CGOL_game_runner import next_gen
 import time
 from CGOL_test_patterns import master_library
-
 day = 0
 daGrid = master_library['2-engine Cordership']
 while day != 550:

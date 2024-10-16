@@ -18,11 +18,10 @@
 using rgb_matrix::Canvas;
 using rgb_matrix::RGBMatrix;
 using rgb_matrix::FrameCanvas;
-using std::string;
-using std::vector;
+using namespace std;
 
 
-bool pi = false;
+bool pi = true;
 
 volatile bool interrupt_received = false;
 static void InterruptHandler(int signo) {
@@ -128,16 +127,17 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
         if (rc == -1) {
-            std::cerr << "read error";
-            exit(1);
+            cerr << "read error";
+            // exit(1);
         }else if (rc == 0) {
-            std::cout << "All done\trc: " << rc << "\nRead in:\n" << total_data << "\nSize: "<< total_data.size() <<"\n";
+            cout << "All done\trc: " << rc << "\nRead in:\n" << total_data << "\nSize: "<< total_data.size() <<"\n";
             string now = total_data;
             vector lines = splitString(now);
             for(size_t y = 0; y < lines.size(); y++){
                 string line = lines[y];
+                if(!pi) cout << line << endl;
                 for(size_t x = 0; x < line.size(); x++){
-                    std::cout << line[x];
+                    // cout << line[x];
                     if(pi){
                         int res = line[x] == '0' ? 0 : 255;
                         //              x   y  red green blue
@@ -149,11 +149,12 @@ int main(int argc, char* argv[]) {
             if(pi){
                 canvas = matrix->SwapOnVSync(canvas);
             }
-            std::cout << "Image received\n";
+            cout << "Image received" << endl;
+            cout << endl;
             Json::Value root;
             root["success"] = true;
             Json::StreamWriterBuilder writer;
-            std::string response = Json::writeString(writer, root);
+            string response = Json::writeString(writer, root);
             send(cl, response.c_str(), response.size(), 0);
             // close(cl);
         }

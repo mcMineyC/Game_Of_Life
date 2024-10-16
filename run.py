@@ -1,7 +1,7 @@
 import CGOL_game_runner as runner
 import CGOL_test_patterns as tp
 import socket, json, time, struct
-from regexes_converts import grid_to_string as pro_print_grid
+import regexes_converts as rc
 
 
 socket_path = '/tmp/matrix_connector'
@@ -12,10 +12,9 @@ curr_grid = tp.master_library["snark loop"]
 gen = 0
 for x in range(500):
     n_gen = runner.next_gen(curr_grid)
-    strr = pro_print_grid(n_gen, (0, 4), (4, 0))
-    print()
-    print(strr)
-    gen+=1
+    strr = rc.grid_to_string(n_gen, (0, 4), (4, 0))
+    # print()
+    # print(strr)
     message = strr.encode("utf-8")
     print("Sending message of length: " + str(len(message)))
     try:
