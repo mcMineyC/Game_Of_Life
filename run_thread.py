@@ -53,8 +53,14 @@ class CGOLSimulator:
         if(self.verbose): print("CGOLSimulator: stopped.")
     def tick(self):
         if(self.verbose): print("CGOLSimulator: Ticking")
-        self.current_grid = runner.next_gen(self.current_grid)
-        self.gen += 1
+        if(self.interval < 0):
+            print("CGOLSimulator: Negative interval. Skipping ", self.interval*-1, " generations.")
+            for _ in range(self.interval*-1):
+                self.current_grid = runner.next_gen(self.current_grid)
+                self.gen += 1
+        else:
+            self.current_grid = runner.next_gen(self.current_grid)
+            self.gen += 1
         if(self.verbose): print("CGOLSimulator: ticked.")
     def process_grid(self):
         gridStr = cf.grid_to_string(self.current_grid, self.camera_pos, (self.camera_pos[0]+7, self.camera_pos[1]-7))
@@ -103,7 +109,7 @@ def runner_thread(incoming, outgoing, client, verbose=False):
             except:
                 if(verbose): print("CGOL runner_thread: Error sending message. continuing")
             simulator.tick()
-            time.sleep(simulator.interval)
+            time.sleep(0 if simulator.interval < 0 else simulator.interval)
 
 if __name__ == "__main__":
     verbose = False
@@ -155,6 +161,12 @@ if __name__ == "__main__":
                 print("Starting")
                 ppipe.send({
                     "type": "start",
+                })
+            case "genskip":
+                skip = int(input("Number of gens to skip: "))
+                ppipe.send({
+                    "type": "setinterval",
+                    "data": -1 * skip,
                 })
             case "[":
                 interval -= 0.05
