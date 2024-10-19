@@ -1,5 +1,6 @@
 import json, hashlib
 from regexes_converts import grid_paragraph_regex, txt_to_RLE, RLE_regex, comment_to_dict
+#TODO fix import here
 
 def hasher(MD5Input):
     return hashlib.md5(MD5Input.encode()).hexdigest()
@@ -25,7 +26,7 @@ def convert_lexicon(paragraph):
         rle = txt_to_RLE(paragraph[2])
         raw_rle = rle.split("\n")[2]
         name = paragraph[0]
-        hash = hasher(name + rle)
+        hash = hasher(name + rle) #why is hash blue? TODO fix this and input as well?
         creator = "LifeWiki Lexicon"
         xy = RLE_regex.findall(rle)
         x = xy[0][2]
