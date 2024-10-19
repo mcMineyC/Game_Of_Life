@@ -9,13 +9,13 @@ def get_socket():
 def send_message(client, strr):
     message = strr.encode("utf-8")
     try:
-        print("Sending message of length: " + str(len(message)))
-        print("Sending message length...")
+        # print("Sending message of length: " + str(len(message)))
+        # print("Sending message length...")
         client.sendall(struct.pack("!I", len(message)))
-        print("Sending message...")
+        # print("Sending message...")
         client.sendall(message)
     except:
-        print("Error sending message.")
+        # print("Error sending message.")
         exit(1)
     response = client.recv(1024)
     response = json.loads(response)

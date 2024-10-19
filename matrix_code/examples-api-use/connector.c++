@@ -21,7 +21,8 @@ using rgb_matrix::FrameCanvas;
 using namespace std;
 
 
-bool pi = false;
+bool pi = true;
+bool verbose = false;
 
 volatile bool interrupt_received = false;
 static void InterruptHandler(int signo) {
@@ -52,7 +53,7 @@ int main(int argc, char* argv[]) {
     rgb_matrix::RuntimeOptions runtime_opt;
     if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv,
                                          &matrix_options, &runtime_opt)) {
-        std::cerr << "Error parsing options" << std::endl;
+        if(verbose) cerr << "Error parsing options" << endl;
     }
 
     // signal(SIGTERM, InterruptHandler);
@@ -63,11 +64,11 @@ int main(int argc, char* argv[]) {
     int fd, cl, rc;
 
     for(int i = 0; i < argc; i++) {
-        std::cout << argv[i] << std::endl;
+        cout << argv[i] << endl;
     }
 
     if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-        std::cerr << "socket error" << std::endl;
+        cerr << "socket error" << endl;
         exit(-1);
     }
 
@@ -77,12 +78,12 @@ int main(int argc, char* argv[]) {
     unlink(SOCKET_PATH);
 
     if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-        std::cerr << "bind error" << std::endl;
+        cerr << "bind error" << endl;
         exit(-1);
     }
 
     if (listen(fd, 1) == -1) {
-        std::cerr << "listen error" << std::endl;
+        cerr << "listen error" << endl;
         exit(-1);
     }
     FrameCanvas *canvas;
@@ -93,31 +94,30 @@ int main(int argc, char* argv[]) {
     }
     cl = accept(fd, NULL, NULL);
     if (cl == -1) {
-        std::cerr << "accept error" << std::endl;
+        if(verbose) cerr << "accept error" << std::endl;
         exit(-1);
     }else{
-        std::cout << "Got connection\n";
+        if(verbose) cout << "Got connection\n";
     }
+    cout << "Server is listening for incoming connections..." << endl;
     while (true) {
-        std::cout << "Server is listening for incoming connections..." << std::endl;
-
         uint32_t length;
         if (read(cl, &length, sizeof(length)) != sizeof(length)) {
-            std::cerr << "read error";
+            if(verbose) cerr << "read error";
             exit(1);
         }
         length = ntohl(length);
-        std::cout << "Expecting message of length: " << length << std::endl;
+        if(verbose) cout << "Expecting message of length: " << length << endl;
 
-        std::string total_data;
+        string total_data;
         total_data.resize(length);
         char* buf = &total_data[0];
         size_t total_read = 0;
         ssize_t rc = read(cl, buf + total_read, length - total_read);
-        std::cout << "read " << rc << " bytes\n";
+        if(verbose) cout << "read " << rc << " bytes\n";
         total_read += rc;
 
-        std::cout << "Readed " << total_read << " bytes\n";
+        if(verbose) cout << "Readed " << total_read << " bytes\n";
         if(total_read == length){
             rc = 0;
         }else if(total_read < length){
@@ -127,15 +127,15 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
         if (rc == -1) {
-            cerr << endl << "read error, expected " << length << " bytes, got " << total_read << " bytes\n";
+            if(verbose) cerr << endl << "read error, expected " << length << " bytes, got " << total_read << " bytes\n";
             // exit(1);
         }else if (rc == 0) {
-            cout << "All done\trc: " << rc << "\nRead in:\n" << total_data << "\nSize: "<< total_data.size() <<"\n";
+            if(verbose) cout << "All done\trc: " << rc << "\nRead in:\n" << total_data << "\nSize: "<< total_data.size() <<"\n";
             string now = total_data;
             vector lines = splitString(now);
             for(size_t y = 0; y < lines.size(); y++){
                 string line = lines[y];
-                if(!pi) cout << line << endl;
+                if(!pi && verbose) cout << line << endl;
                 for(size_t x = 0; x < line.size(); x++){
                     // cout << line[x];
                     if(pi){
@@ -149,8 +149,8 @@ int main(int argc, char* argv[]) {
             if(pi){
                 canvas = matrix->SwapOnVSync(canvas);
             }
-            cout << "Image received" << endl;
-            cout << endl;
+            if(verbose) cout << "Image received" << endl;
+            if(verbose) cout << endl;
             Json::Value root;
             root["success"] = true;
             Json::StreamWriterBuilder writer;
