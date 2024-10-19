@@ -21,7 +21,7 @@ using rgb_matrix::FrameCanvas;
 using namespace std;
 
 
-bool pi = true;
+bool pi = false;
 
 volatile bool interrupt_received = false;
 static void InterruptHandler(int signo) {
@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
             exit(1);
         }
         if (rc == -1) {
-            cerr << "read error";
+            cerr << endl << "read error, expected " << length << " bytes, got " << total_read << " bytes\n";
             // exit(1);
         }else if (rc == 0) {
             cout << "All done\trc: " << rc << "\nRead in:\n" << total_data << "\nSize: "<< total_data.size() <<"\n";

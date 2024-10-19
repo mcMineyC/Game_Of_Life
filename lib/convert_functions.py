@@ -10,41 +10,12 @@
 #NOTE do not include a newline at the end of a custom CGOL comment
 
 import re
-
-digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
-empty_chunk = [[False] * 8] * 8
-
-#                                      :(name_____):(paragraph_) (grid lines_______)
-grid_paragraph_regex = re.compile(r"\n:([^\t\n:]+):([^\t\n]+\n)*((\t[\*\.]{2,}\n)+)")
-#group[0] is name, group[2] is full plaintext pattern.
-#This regex seems to operate 100% correctly, but it is a good idea to triple-check it.
-
-grid_regex = re.compile(r'((\t[\*\.]{2,}\n)+)')#findall() works, but adds an extra line to the end. Fixable?
-
-line_regex = re.compile(r'\t?([\*\.]{2,})\n') #only matches plaintext patterns whose live/dead characters are */. #IMPORTANT will not match final line unless final line ends with '\n'
-
-whitespace_regex = re.compile(r'\s')
-
-#                             (comments)    (x     )      (y     )                 (pattern      )
-RLE_regex = re.compile(r'^\s?((#.+\n)*)x = ([0-9]+), y = ([0-9]+), rule = B3/S23\n([0-9bo\$\s]+!)\s?$', re.IGNORECASE)
-#1st group is all comments, 3rd group is x value, 4 is y value, 5 is RLE
-
-default_RLE_comment = '''#C [[ ZOOM 7 GRID COLOR GRID 31 31 31 COLOR DEADRAMP 31 0 0 COLOR ALIVE 255 255 255 COLOR ALIVERAMP 255 255 255 COLOR DEAD 0 0 47 COLOR BACKGROUND 0 0 0 GPS 10 WIDTH 937 HEIGHT 600 ]]''' #TODO modify window WIDTH and HEIGHT as needed
-
-comment_regex = re.compile(r'#C \[\[ .+ \]\]')
-
-comment_items_regex = re.compile(r'([A-Z ]+) ([0-9 ]+)|([A-Z][a-z]+)')
-
-greedy_regex = re.compile(r'\$+')
-
-
+from lib import regexes as r
 # Functions that convert pattern types:
-
-
 #This function converts RLE to plaintext. It accepts the entire unedited RLE string. It does not preserve comments.
 def easy_RLE_to_txt(erttRLE):
     global RLE_regex, whitespace_regex
-    erttRLEfound = re.search(RLE_regex, erttRLE)
+    erttRLEfound = re.search(r.RLE_regex, erttRLE)
     if erttRLEfound != None:
         erttGroups = erttRLEfound.group(3, 4, 5)
         #remove whitespace
@@ -66,8 +37,8 @@ def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
     for char in arttRLE:
         if  char in ('\n', '\t', ' '):
             continue
-        if char in digits:
-            arttInt += char
+        if char in r.digits:
+            arttInt += str(char)
 
         elif char == '$':
             if arttInt == '': arttInt = '1'
@@ -88,7 +59,7 @@ def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
             arttInt = ''
 
     #ensure that output is not flawed via asserts
-    arttOutputLines = line_regex.findall(arttOutput)
+    arttOutputLines = r.line_regex.findall(arttOutput)
     assert len(arttOutputLines) == arttYBound, str(len(arttOutputLines)) + ' != ' + str(arttYBound)
     for arttLine in arttOutputLines: assert len(arttLine) == arttXBound, str(len(arttLine)) + ' != ' + str(arttXBound)
     return arttOutput[:-1] #remove extra '\n' at the end of str
@@ -139,10 +110,10 @@ def matrix_to_txt(mttGrid):
 
 
 #converts txt to RLE and provides meta-data comments:
-def txt_to_RLE(ttrInput, ttrComment=default_RLE_comment): #TODO accept comment to use in RLE instead of default.
+def txt_to_RLE(ttrInput, ttrComment=r.default_RLE_comment): #TODO accept comment to use in RLE instead of default.
     global line_regex, greedy_regex
     ttrInput += '\n'
-    ttrLines = line_regex.findall(ttrInput)
+    ttrLines = r.line_regex.findall(ttrInput)
     #get dimensions of txt
     ttrHeight = len(ttrLines)
     ttrWidth = len(ttrLines[0])
@@ -168,7 +139,7 @@ def txt_to_RLE(ttrInput, ttrComment=default_RLE_comment): #TODO accept comment t
     ttrOutputRLE = ttrOutputRLE[:-1] + '!' #replace final char with ! instead of $
 
     #search for clusters of $ (e.g. '...$$$...') and convert to '...3$...'
-    ttrDollars = greedy_regex.findall(ttrOutputRLE)
+    ttrDollars = r.greedy_regex.findall(ttrOutputRLE)
     ttrDollarCount = 0
     for ttrInstance in ttrDollars: #finds the longest instance
         if len(ttrInstance) > ttrDollarCount: ttrDollarCount = len(ttrInstance)
@@ -183,8 +154,8 @@ def txt_to_RLE(ttrInput, ttrComment=default_RLE_comment): #TODO accept comment t
 #accepts entire raw RLE, returns a dict of meta-data from the "#C [[ ZOOM 7 ]]" comment
 def comment_to_dict(ctdInput):
     global comment_regex, comment_items_regex, digits
-    ctdTheComment = comment_regex.search(ctdInput).group()
-    ctdCommentItems = comment_items_regex.findall(ctdTheComment)
+    ctdTheComment = r.comment_regex.search(ctdInput).group()
+    ctdCommentItems = r.comment_items_regex.findall(ctdTheComment)
 
     #clean up keys and values
     ctdList4Output = []
@@ -194,7 +165,7 @@ def comment_to_dict(ctdInput):
             ctdList4Output[-1].append([])
             ctdInt = ''
             for ctdChar in ctdItem[1]:
-                if ctdChar in digits:
+                if ctdChar in r.digits:
                     ctdInt += ctdChar
                 else:
                     ctdList4Output[-1][1].append(int(ctdInt))
@@ -223,7 +194,7 @@ def txt_to_matrix(ttmGrid):
     ttmGrid += '\n'#regex will not catch final line if it does not end with '\n'
 
     #break up grid into lines
-    ttmGridLines = line_regex.findall(ttmGrid)
+    ttmGridLines = r.line_regex.findall(ttmGrid)
     ttmGridLines.reverse()
 
     #get grid specs
@@ -253,7 +224,7 @@ def txt_to_matrix(ttmGrid):
                     except IndexError:
                         ttmOutGrid[(ChunkX, ChunkY)][CellX][CellY] = False
             #delete chunk if empty
-            if ttmOutGrid[(ChunkX, ChunkY)] == empty_chunk:
+            if ttmOutGrid[(ChunkX, ChunkY)] == r.empty_chunk:
                 del ttmOutGrid[(ChunkX, ChunkY)]
     return ttmOutGrid
 
@@ -263,7 +234,7 @@ def RLE_to_matrix(rtmInput):
     return txt_to_matrix(easy_RLE_to_txt(rtmInput))
 
 #Converts list-matrix to RLE and adds default comment line
-def matrix_to_RLE(mtrMatrix, mtrComment=default_RLE_comment):
+def matrix_to_RLE(mtrMatrix, mtrComment=r.default_RLE_comment):
     return txt_to_RLE(matrix_to_txt(mtrMatrix), ttrComment=mtrComment)
 
 
@@ -303,7 +274,27 @@ def grid_to_string(gtsGrid, gtsUpLeft, gtsDownRight):
             gtsOutput += '\n'
     return gtsOutput
 
+# WIP CENTERED THING THAT WON"T WORK
+# def grid_to_string_centered(grid, coordinate, image_size=64):
+#     center_chunk = (coordinate[0] // 8, coordinate[1] // 8)
+#     center_chunk_offset = (coordinate[0] % 8, coordinate[1] % 8)
+#     chunk_count = (image_size // 8) + 2
+#     top_left_chunk = ((coordinate[0] // 8) - (chunk_count // 2), (coordinate[1] // 8) + (chunk_count // 2))
+#     bottom_right_chunk = ((coordinate[0] // 8) + (chunk_count // 2), (coordinate[1] // 8) - (chunk_count // 2))
+#     print(top_left_chunk, bottom_right_chunk)
+#     gtsOutput = ''
+#     for gtsChunkRow in range(top_left_chunk[1], bottom_right_chunk[1]-1, -1):
+#         for gtsCellRow in range(7, -1, -1):
+#             for gtsChunk in range(top_left_chunk[0], bottom_right_chunk[0]):
+#                 for gtsX in range(8):
+#                     if (gtsChunk, gtsChunkRow) in grid:
+#                         gtsOutput = gtsOutput + ('1' if grid[(gtsChunk, gtsChunkRow)][gtsX][gtsCellRow] else '0') # Loaded chunks
+#                     else:
+#                         gtsOutput += '0' # Unloaded chunk
 
+#             gtsOutput += '\n'
+#     print(gtsOutput)
+#     return gtsOutput
 #accepts coordinates of two chunks and returns all chunks within the window.
 def get_chunk_window(gcwUpLeft, gcwDownRight):
     assert type(gcwUpLeft) in (tuple, list) and len(gcwUpLeft) == 2, 'gcw parameter gcwUpLeft passed invalid argument' #TODO remove asserts for efficiency
@@ -315,21 +306,3 @@ def get_chunk_window(gcwUpLeft, gcwDownRight):
             gcwOutput[gcwCounter].append((gcwX, gcwY))
     assert gcwOutput != []
     return gcwOutput
-
-
-
-
-'''
-#test; TODO delete later
-from CGOL_game_runner import next_gen
-import time
-from CGOL_test_patterns import master_library
-day = 0
-daGrid = master_library['2-engine Cordership']
-while day != 550:
-    print(day)
-    pro_print_grid(daGrid, (0, 3), (8, -2))
-    #time.sleep(0.1)
-    daGrid = next_gen(daGrid)
-    day += 1
-'''
