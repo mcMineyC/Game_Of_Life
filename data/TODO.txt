@@ -1,0 +1,5 @@
+In lexicon_list.json, replace the meta data comments under each "raw_rle" key with an insert_default_here, or something similar.
+
+patterns are likely old prototypes
+
+why are there so many lexicon and pattern files?
