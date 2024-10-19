@@ -107,72 +107,76 @@ def runner_thread(incoming, outgoing, client, verbose=False):
 
 if __name__ == "__main__":
     verbose = False
-    ppipe, cpipe = mp.Pipe()
-    p = mp.Process(target=runner_thread, args=(cpipe, ppipe, comms.get_socket(), verbose))
+    ippipe, icpipe = mp.Pipe()
+    oppipe, ocpipe = mp.Pipe()
+    p = mp.Process(target=runner_thread, args=(ippipe, ocpipe, comms.get_socket(), verbose))
     camera_pos = (0, 0)
     interval = 0.25
     p.start()
-    ppipe.send({
+    icpipe.send({
         "type": "setgrid",
         "data": tp.master_library["snark loop"]
     })
-    ppipe.send({
+    icpipe.send({
         "type": "setcamera",
         "data": camera_pos,
+    })
+    icpipe.send({
+        "type": "start",
     })
     while True:
         inputStr = str(input("> "))
         match(inputStr):
             case "w":
                 camera_pos = (camera_pos[0]+1, camera_pos[1])
-                ppipe.send({
+                icpipe.send({
                     "type": "setcamera",
                     "data": camera_pos,
                 })
             case "s":
                 camera_pos = (camera_pos[0]-1, camera_pos[1])
-                ppipe.send({
+                icpipe.send({
                     "type": "setcamera",
                     "data": camera_pos,
                 })
             case "a":
                 camera_pos = (camera_pos[0], camera_pos[1]-1)
-                ppipe.send({
+                icpipe.send({
                     "type": "setcamera",
                     "data": camera_pos,
                 })
             case "d":
                 camera_pos = (camera_pos[0], camera_pos[1]+1)
-                ppipe.send({
+                icpipe.send({
                     "type": "setcamera",
                     "data": camera_pos,
                 })
             case "pause":
-                ppipe.send({
+                icpipe.send({
                     "type": "stop",
                 })
             case "start":
                 print("Starting")
-                ppipe.send({
+                icpipe.send({
                     "type": "start",
                 })
             case "[":
                 interval -= 0.05
                 if(interval < 0): interval = 0
-                ppipe.send({
+                icpipe.send({
                     "type": "setinterval",
                     "data": interval,
                 })
             case "]":
                 interval += 0.05
-                ppipe.send({
+                icpipe.send({
                     "type": "setinterval",
                     "data": interval,
                 })
-        if not ppipe.poll():
+        if not oppipe.poll():
             time.sleep(0.1)
             pass
         else:
             if(verbose): print("received data")
-            # print("received data", ppipe.recv())
+            print("received data", oppipe.recv())
     print("Thread finished.")
