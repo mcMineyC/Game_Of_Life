@@ -24,7 +24,7 @@ class CGOLSimulator:
         # queue, client,
         interval=0.25,
         starting_grid=None,
-        camera_pos=(-4, 4),
+        camera_pos=(0, 7),
         verbose=False
     ):
         # self.queue = queue
@@ -32,7 +32,7 @@ class CGOLSimulator:
         self.interval = interval
         self.starting_grid = starting_grid
         self.camera_pos = camera_pos
-        self.current_grid = []
+        self.current_grid = {}
         self.verbose = verbose
         self.running = False
         self.gen = 0
@@ -40,6 +40,7 @@ class CGOLSimulator:
         if(self.verbose): print("CGOLSimulator: initialized.")
     def set_grid(self, grid):
         self.starting_grid = grid
+        self.current_grid = grid
         self.grid = grid
         self.gen = 0
         # self.running = True
@@ -51,17 +52,23 @@ class CGOLSimulator:
         self.running = False
         if(self.verbose): print("CGOLSimulator: stopped.")
     def tick(self):
-        print("Ticking")
-        self.current_grid = runner.next_gen(self.current_grid)
-        self.gen += 1
+        if(self.verbose): print("CGOLSimulator: Ticking")
+        if(self.interval < 0):
+            print("CGOLSimulator: Negative interval. Skipping ", self.interval*-1, " generations.")
+            for _ in range(self.interval*-1):
+                self.current_grid = runner.next_gen(self.current_grid)
+                self.gen += 1
+        else:
+            self.current_grid = runner.next_gen(self.current_grid)
+            self.gen += 1
         if(self.verbose): print("CGOLSimulator: ticked.")
     def process_grid(self):
         gridStr = cf.grid_to_string(self.current_grid, self.camera_pos, (self.camera_pos[0]+7, self.camera_pos[1]-7))
-        print(len(gridStr.splitlines()[0]))
-        print(len(gridStr.splitlines()))
+        # print(len(gridStr.splitlines()[0]))
+        # print(len(gridStr.splitlines()))
         return gridStr
     def start(self):
-        print("Starting")
+        if(self.verbose): print("CGOLSimulator: Starting")
         self.running = True
 
     # def send_message(self, message):
@@ -69,31 +76,29 @@ class CGOLSimulator:
     #     if(self.verbose): print("CGOLSimulator: sent message.")
 
 
-def runner_thread(incoming, outgoing, client):
-    simulator = CGOLSimulator(verbose=True)
-    # simulator.set_grid(tp.master_library["snark loop"])
-    # simulator.start()
+def runner_thread(incoming, outgoing, client, verbose=False):
+    simulator = CGOLSimulator(verbose=verbose)
+    if(verbose): print("CGOL runner_thread: Runner thread created")
+
     while True:
         while incoming.poll():
-            print("Incoming data")
             item = incoming.recv()
             match(item["type"]):
                 case "setgrid":
                     simulator.set_grid(item["data"])
-                    simulator.start()
-                    break;
+                    # simulator.start()
                 case "setinterval":
                     simulator.set_interval(item["data"])
-                    break;
+                case "setcamera":
+                    simulator.camera_pos = item["data"]
                 case "stop":
                     simulator.stop()
-                    break;
                 case "start":
+                    if(verbose): print("CGOL runner_thread: Starting Main Loop")
                     simulator.start()
-                    break;
 
-        if(simulator.running or True):
-            print("Running Main Loop")
+        if(simulator.running):
+            if(verbose): print("CGOL runner_thread: Running Main Loop")
             curr_grid = simulator.process_grid()
             outgoing.send({
                 "type": "grid",
@@ -102,25 +107,88 @@ def runner_thread(incoming, outgoing, client):
             try:
                 comms.send_message(client, curr_grid)
             except:
-                print("Error sending message. continuing")
+                if(verbose): print("CGOL runner_thread: Error sending message. continuing")
             simulator.tick()
-            time.sleep(simulator.interval)
+            time.sleep(0 if simulator.interval < 0 else simulator.interval)
 
 if __name__ == "__main__":
-    ppipe, cpipe = mp.Pipe()
-    p = mp.Process(target=runner_thread, args=(cpipe, ppipe, comms.get_socket()))
+    verbose = False
+    ippipe, icpipe = mp.Pipe()
+    oppipe, ocpipe = mp.Pipe()
+    p = mp.Process(target=runner_thread, args=(ippipe, ocpipe, comms.get_socket(), verbose))
+    camera_pos = (0, 0)
+    interval = 0.25
     p.start()
-    ppipe.send({
+    icpipe.send({
         "type": "setgrid",
         "data": tp.master_library["snark loop"]
     })
-    ppipe.send({
+    icpipe.send({
+        "type": "setcamera",
+        "data": camera_pos,
+    })
+    icpipe.send({
         "type": "start",
     })
     while True:
-        if not ppipe.poll():
-            time.sleep(0.5)
+        inputStr = str(input("> "))
+        match(inputStr):
+            case "w":
+                camera_pos = (camera_pos[0]+1, camera_pos[1])
+                icpipe.send({
+                    "type": "setcamera",
+                    "data": camera_pos,
+                })
+            case "s":
+                camera_pos = (camera_pos[0]-1, camera_pos[1])
+                icpipe.send({
+                    "type": "setcamera",
+                    "data": camera_pos,
+                })
+            case "a":
+                camera_pos = (camera_pos[0], camera_pos[1]-1)
+                icpipe.send({
+                    "type": "setcamera",
+                    "data": camera_pos,
+                })
+            case "d":
+                camera_pos = (camera_pos[0], camera_pos[1]+1)
+                icpipe.send({
+                    "type": "setcamera",
+                    "data": camera_pos,
+                })
+            case "pause":
+                icpipe.send({
+                    "type": "stop",
+                })
+            case "start":
+                print("Starting")
+                icpipe.send({
+                    "type": "start",
+                })
+            case "genskip":
+                skip = int(input("Number of gens to skip: "))
+                ppipe.send({
+                    "type": "setinterval",
+                    "data": -1 * skip,
+                })
+            case "[":
+                interval -= 0.05
+                if(interval < 0): interval = 0
+                icpipe.send({
+                    "type": "setinterval",
+                    "data": interval,
+                })
+            case "]":
+                interval += 0.05
+                icpipe.send({
+                    "type": "setinterval",
+                    "data": interval,
+                })
+        if not oppipe.poll():
+            time.sleep(0.1)
             pass
         else:
-            print("received data", ppipe.recv())
+            if(verbose): print("received data")
+            print("received data", oppipe.recv())
     print("Thread finished.")

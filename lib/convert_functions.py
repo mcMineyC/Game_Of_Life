@@ -295,6 +295,8 @@ def grid_to_string(gtsGrid, gtsUpLeft, gtsDownRight):
 #             gtsOutput += '\n'
 #     print(gtsOutput)
 #     return gtsOutput
+
+
 #accepts coordinates of two chunks and returns all chunks within the window.
 def get_chunk_window(gcwUpLeft, gcwDownRight):
     assert type(gcwUpLeft) in (tuple, list) and len(gcwUpLeft) == 2, 'gcw parameter gcwUpLeft passed invalid argument' #TODO remove asserts for efficiency
