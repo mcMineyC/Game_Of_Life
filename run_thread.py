@@ -79,7 +79,8 @@ class CGOLSimulator:
 def runner_thread(incoming, outgoing, client, verbose=False):
     simulator = CGOLSimulator(verbose=verbose)
     if(verbose): print("CGOL runner_thread: Runner thread created")
-
+    # else: print("You're a wizard, Harry.")
+    needsToDie = False
     while True:
         while incoming.poll():
             item = incoming.recv()
@@ -90,12 +91,20 @@ def runner_thread(incoming, outgoing, client, verbose=False):
                 case "setinterval":
                     simulator.set_interval(item["data"])
                 case "setcamera":
+                    if(verbose): print("CGOL runner_thread: Setting camera to ", item["data"])
                     simulator.camera_pos = item["data"]
                 case "stop":
                     simulator.stop()
                 case "start":
                     if(verbose): print("CGOL runner_thread: Starting Main Loop")
                     simulator.start()
+                case "avadakadavra":
+                    needsToDie = True
+                    break
+        if(needsToDie):
+            if(verbose): print("CGOL runner_thread: Received avadakadavra. Exiting.")
+            else: print("Fly away, Stanley. Be free!!")
+            break
 
         if(simulator.running):
             if(verbose): print("CGOL runner_thread: Running Main Loop")
@@ -104,19 +113,23 @@ def runner_thread(incoming, outgoing, client, verbose=False):
                 "type": "grid",
                 "data": curr_grid
             })
+            if(verbose): print("Sent grid")
             try:
                 comms.send_message(client, curr_grid)
             except:
-                if(verbose): print("CGOL runner_thread: Error sending message. continuing")
+                if(verbose): print("CGOL runner_thread: Error sending message. Not continuing")
+                break
             simulator.tick()
             time.sleep(0 if simulator.interval < 0 else simulator.interval)
 
 if __name__ == "__main__":
+    kb = comms.KBHit()
     verbose = False
+    showOutput = False
     ippipe, icpipe = mp.Pipe()
     oppipe, ocpipe = mp.Pipe()
     p = mp.Process(target=runner_thread, args=(ippipe, ocpipe, comms.get_socket(), verbose))
-    camera_pos = (0, 0)
+    camera_pos = (0, 7)
     interval = 0.25
     p.start()
     icpipe.send({
@@ -127,11 +140,20 @@ if __name__ == "__main__":
         "type": "setcamera",
         "data": camera_pos,
     })
-    icpipe.send({
-        "type": "start",
-    })
+    # icpipe.send({
+    #     "type": "start",
+    # })
+    said = False
     while True:
-        inputStr = str(input("> "))
+        if(not said):
+            print("> ", end="", flush=True)
+            said = True
+        inputStr = ""
+        if(kb.kbhit()):
+            inputStr = kb.getch()
+            print(inputStr)
+        if(inputStr != ""):
+            said = False 
         match(inputStr):
             case "w":
                 camera_pos = (camera_pos[0]+1, camera_pos[1])
@@ -157,16 +179,16 @@ if __name__ == "__main__":
                     "type": "setcamera",
                     "data": camera_pos,
                 })
-            case "pause":
+            case "p":
                 icpipe.send({
                     "type": "stop",
                 })
-            case "start":
+            case "t":
                 print("Starting")
                 icpipe.send({
                     "type": "start",
                 })
-            case "genskip":
+            case "g":
                 skip = int(input("Number of gens to skip: "))
                 ppipe.send({
                     "type": "setinterval",
@@ -185,10 +207,48 @@ if __name__ == "__main__":
                     "type": "setinterval",
                     "data": interval,
                 })
+            case "{":
+                interval = 0
+                icpipe.send({
+                    "type": "setinterval",
+                    "data": interval,
+                })
+            case "}":
+                interval = 0.25
+                icpipe.send({
+                    "type": "setinterval",
+                    "data": interval,
+                })
+            case "o":
+                showOutput = not showOutput
+            case "q":
+                icpipe.send({
+                    "type": "avadakadavra",
+                })
+                break
+            case "h":
+                print("""
+    Commands:
+    \tw: move camera up
+    \ts: move camera down
+    \ta: move camera left
+    \td: move camera right
+    \tp: pause/stop
+    \tt: start
+    \tg: skip n gens
+    \t[: speed up
+    \t]: slow down
+    \t{: As fast as possible
+    \t}: Reset (0.25)
+    \to: toggle output
+    \tq: quit
+    \th: print this
+""")
         if not oppipe.poll():
             time.sleep(0.1)
             pass
         else:
-            if(verbose): print("received data")
-            print("received data", oppipe.recv())
+            currGrid = oppipe.recv()
+            if(showOutput): print(currGrid)
     print("Thread finished.")
+    kb.set_normal_term()
