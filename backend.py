@@ -115,12 +115,18 @@ def handle_connect():
 
 @socketio.on('message')
 def handle_message(data):
-    print('Received message:', data)
+    print('Received message: '+str(data))
     socketio.emit('response', 'Server received your message: ' + data)
 @socketio.on("json")
 def handle_json(data):
-    print('Received json:', data)
+    data = json.loads(data)
+    print('Received json: '+str(data))
     data["recevied"] = True
+    socketio.emit('responseJSON', data)
+@socketio.on("plaintext")
+def handle_plaintext(data):
+    print('Received plaintext: ' +str(data))
+    data = {"recevied": True, "plaintext": data}
     socketio.emit('responseJSON', data)
 
 if __name__ == '__main__':
