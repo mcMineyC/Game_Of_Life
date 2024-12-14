@@ -190,7 +190,7 @@ if __name__ == "__main__":
                 })
             case "g":
                 skip = int(input("Number of gens to skip: "))
-                ppipe.send({
+                icpipe.send({
                     "type": "setinterval",
                     "data": -1 * skip,
                 })
