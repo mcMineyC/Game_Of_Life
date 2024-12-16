@@ -17,13 +17,14 @@ async def main():
     async with websockets.connect('ws://localhost:5001') as websocket:
         # Initial setup
         await websocket.send(json.dumps({
-            "type": "setgrid",
-            "data": cf.RLE_to_matrix("bo$2bo$3o!")
+            "type": "setrle",
+            "data": "bo$2bo$3o!"
         }))
 
         await websocket.send(json.dumps({
             "type": "setcamera",
-            "data": camera_pos,
+            "x": camera_pos[0],
+            "y": camera_pos[1],
         }))
 
         said = False
@@ -44,25 +45,29 @@ async def main():
                     camera_pos = (camera_pos[0]+1, camera_pos[1])
                     await websocket.send(json.dumps({
                         "type": "setcamera",
-                        "data": camera_pos,
+                        "x": camera_pos[0],
+                        "y": camera_pos[1]
                     }))
                 case "s":
                     camera_pos = (camera_pos[0]-1, camera_pos[1])
                     await websocket.send(json.dumps({
                         "type": "setcamera",
-                        "data": camera_pos,
+                        "x": camera_pos[0],
+                        "y": camera_pos[1]
                     }))
                 case "a":
                     camera_pos = (camera_pos[0], camera_pos[1]-1)
                     await websocket.send(json.dumps({
                         "type": "setcamera",
-                        "data": camera_pos,
+                        "x": camera_pos[0],
+                        "y": camera_pos[1]
                     }))
                 case "d":
                     camera_pos = (camera_pos[0], camera_pos[1]+1)
                     await websocket.send(json.dumps({
                         "type": "setcamera",
-                        "data": camera_pos,
+                        "x": camera_pos[0],
+                        "y": camera_pos[1]
                     }))
                 case "p":
                     await websocket.send(json.dumps({
