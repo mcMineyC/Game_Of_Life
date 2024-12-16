@@ -60,7 +60,6 @@ class CGOLSimulator:
                 self.gen += 1
         else:
             self.current_grid = runner.next_gen(self.current_grid)
-            print(str(self.current_grid))
             self.gen += 1
         if(self.verbose): print("CGOLSimulator: ticked.")
     def process_grid(self):
@@ -76,61 +75,78 @@ class CGOLSimulator:
     #     self.queue.put(message)
     #     if(self.verbose): print("CGOLSimulator: sent message.")
 
-
 def runner_thread(incoming, outgoing, client, verbose=False):
     simulator = CGOLSimulator(verbose=verbose)
-    if(verbose): print("CGOL runner_thread: Runner thread created")
-    # else: print("You're a wizard, Harry.")
+    if verbose:
+        print("CGOL runner_thread: Runner thread created")
+
     needsToDie = False
+    last_grid_update = time.time()
+    MIN_UPDATE_INTERVAL = 0.016  # Minimum time between grid updatesa, ~60fps
+    IDLE_SLEEP = 0.1  # Sleep time when not running
+    def send_grid():
+        # Helper function to consistently send grid through both channels
+        curr_grid = simulator.process_grid()
+        outgoing.send({
+            "type": "grid",
+            "data": curr_grid
+        })
+        if verbose:
+            print("Sent grid to pipe")
+        try:
+            comms.send_message(client, curr_grid)
+            if verbose:
+                print("Sent grid to comms socket")
+        except Exception as e:
+            if verbose:
+                print(f"CGOL runner_thread: Error sending message to comms socket: {e}")
+
     while True:
+
+        # Process incoming messages
         while incoming.poll():
             item = incoming.recv()
             match(item["type"]):
                 case "setgrid":
                     simulator.set_grid(item["data"])
-                    # simulator.start()
+                    send_grid()
                 case "setinterval":
                     simulator.set_interval(item["data"])
                 case "setcamera":
-                    if(verbose): print("CGOL runner_thread: Setting camera to ", item["data"])
+                    if verbose:
+                        print("CGOL runner_thread: Setting camera to ", item["data"])
                     simulator.camera_pos = item["data"]
-                    curr_grid = simulator.process_grid()
-                    outgoing.send({
-                        "type": "grid",
-                        "data": curr_grid
-                    })
-                    if(verbose): print("Sent grid")
-                    try:
-                        comms.send_message(client, curr_grid)
-                    except:
-                        if(verbose): print("CGOL runner_thread: Error sending message. Not continuing")
-                        break
+                    send_grid()
                 case "stop":
                     simulator.stop()
                 case "start":
-                    if(verbose): print("CGOL runner_thread: Starting Main Loop")
+                    if verbose:
+                        print("CGOL runner_thread: Starting Main Loop")
                     simulator.start()
                 case "avadakadavra":
                     needsToDie = True
                     break
-        if(needsToDie):
-            if(verbose): print("CGOL runner_thread: Received avadakadavra. Exiting.")
-            else: print("Fly away, Stanley. Be free!!")
+        if needsToDie:
+            if verbose:
+                print("CGOL runner_thread: Received avadakadavra. Exiting.")
+            else:
+                print("Fly away, Stanley. Be free!!")
             break
 
-        if(simulator.running):
-            if(verbose): print("CGOL runner_thread: Running Main Loop")
-            curr_grid = simulator.process_grid()
-            outgoing.send({
-                "type": "grid",
-                "data": curr_grid
-            })
-            if(verbose): print("Sent grid")
-            try:
-                comms.send_message(client, curr_grid)
-            except:
-                if(verbose): print("CGOL runner_thread: Error sending message. Not continuing")
-                break
-            simulator.tick()
-            time.sleep(0 if simulator.interval < 0 else simulator.interval)
+        # Main simulation loop
+        if simulator.running:
+            if verbose:
+                print("CGOL runner_thread: Running Main Loop")
 
+            simulator.tick()
+
+            send_grid()
+
+            # Use the simulator interval directly for sleep
+            if simulator.interval > 0:
+                time.sleep(simulator.interval)
+            else:
+                time.sleep(MIN_UPDATE_INTERVAL)
+        else:
+            # Sleep longer when not running
+            time.sleep(IDLE_SLEEP)
