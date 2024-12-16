@@ -1,4 +1,4 @@
-#this file houses all of the functions and regexes and such
+#this file houses all of the functions and such
 
 #TODO remove print lines that are commented out
 #TODO check for consistency in cell values and such
@@ -14,17 +14,50 @@ from lib import regexes as r
 # Functions that convert pattern types:
 #This function converts RLE to plaintext. It accepts the entire unedited RLE string. It does not preserve comments.
 def easy_RLE_to_txt(erttRLE):
-    global RLE_regex, whitespace_regex
+    # Print the regex (assuming r.RLE_regex is already defined)
+    # Try to match the RLE pattern with a comment (rule = B3/S23)
     erttRLEfound = re.search(r.RLE_regex, erttRLE)
-    if erttRLEfound != None:
-        erttGroups = erttRLEfound.group(3, 4, 5)
-        #remove whitespace
-        erttRLEnoWS = ''
-        for char in erttGroups[2]:
-            if not char in ('\n', '\t', ' '):
-                erttRLEnoWS = erttRLEnoWS + char
-        return advanced_RLE_to_txt(int(erttGroups[0]), int(erttGroups[1]), erttRLEnoWS)
 
+    if erttRLEfound is not None:
+        # If the match is found, extract the groups
+        erttGroups = erttRLEfound.group(1, 2, 3, 4)  # width, height, rule, grid
+        width = int(erttGroups[0])
+        height = int(erttGroups[1])
+        rule = erttGroups[2]
+        grid = erttGroups[3]
+
+        # Remove any whitespace from the grid (e.g., spaces, newlines, tabs)
+        erttRLEnoWS = ''.join(char for char in grid if char not in ('\n', '\t', ' '))
+
+        # Process the RLE string with advanced_RLE_to_txt (assuming it is defined elsewhere)
+        returnVal = advanced_RLE_to_txt(width, height, erttRLEnoWS)
+        return returnVal
+    else:
+        # If no match is found (i.e., no comment and no dimensions), call the sizing function
+        print("No rule comment found, sizing the pattern...")
+        width, height, grid = sizer(erttRLE)
+
+        # Remove whitespace from the grid
+        erttRLEnoWS = ''.join(grid.split())
+
+        # Process the RLE string with advanced_RLE_to_txt (assuming it is defined elsewhere)
+        returnVal = advanced_RLE_to_txt(width, height, erttRLEnoWS)
+        return returnVal
+
+def sizer(erttRLE):
+    """
+    This function calculates the dimensions (width and height) of the RLE pattern
+    when there is no rule provided (i.e., no comment).
+    """
+    # Remove the end marker "!" and any other unnecessary whitespace
+    grid = erttRLE.strip().replace("!", "")
+
+    # Estimate the dimensions by scanning the string for max width and height
+    rows = grid.split('$')
+    height = len(rows)  # The height is the number of rows
+    width = max(len(row) for row in rows)  # The width is the length of the longest row
+
+    return width, height-1, grid
 
 #This function converts RLE to plaintext. It accepts the pattern RLE, the X bound of the pattern, and the Y bound.
 def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
@@ -62,7 +95,8 @@ def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
     arttOutputLines = r.line_regex.findall(arttOutput)
     assert len(arttOutputLines) == arttYBound, str(len(arttOutputLines)) + ' != ' + str(arttYBound)
     for arttLine in arttOutputLines: assert len(arttLine) == arttXBound, str(len(arttLine)) + ' != ' + str(arttXBound)
-    return arttOutput[:-1] #remove extra '\n' at the end of str
+    # return arttOutput[:-1] #remove extra '\n' at the end of str
+    return arttOutput
 
 
 #converts list matrix to plaintext
@@ -193,7 +227,7 @@ def txt_to_matrix(ttmGrid):
     global line_regex, empty_chunk
     ttmGrid += '\n'#regex will not catch final line if it does not end with '\n'
 
-    #break up grid into lines
+    # break up grid into lines
     ttmGridLines = r.line_regex.findall(ttmGrid)
     ttmGridLines.reverse()
 
@@ -231,7 +265,11 @@ def txt_to_matrix(ttmGrid):
 
 #Converts RLE to list matrix pattern
 def RLE_to_matrix(rtmInput):
-    return txt_to_matrix(easy_RLE_to_txt(rtmInput))
+    print("RLE easy:"+str(easy_RLE_to_txt(rtmInput)))
+    returnVal = txt_to_matrix(easy_RLE_to_txt(rtmInput))
+    print("RLE_to_matrix returning: "+str(returnVal))
+    print("In txt:\n"+str(matrix_to_txt(returnVal)))
+    return returnVal
 
 #Converts list-matrix to RLE and adds default comment line
 def matrix_to_RLE(mtrMatrix, mtrComment=r.default_RLE_comment):
