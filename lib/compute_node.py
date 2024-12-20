@@ -35,8 +35,8 @@ async def websocket_handler(websocket, simulator, verbose=False):
                 if message:
                     data = json.loads(message)
                     match(data["type"]):
-                        case "setgrid":
-                            simulator.set_grid(data["data"])
+                        case "setrle":
+                            simulator.set_grid(cf.RLE_to_matrix(data["data"]))
                             await send_grid()
                         case "setinterval":
                             simulator.set_interval(data["data"])
@@ -61,10 +61,10 @@ async def websocket_handler(websocket, simulator, verbose=False):
                 if simulator.running:
                     if verbose:
                         print("Running Main Loop")
+                    print(str(simulator.current_grid))
 
                     simulator.tick()
                     await send_grid()
-                    print("sended grid")
 
                     # Handle timing
                     if simulator.interval > 0:

@@ -196,6 +196,14 @@ async def websocket_server():
                                 simulator_ws.recv(),
                                 timeout=0.1
                             )
+                            try:
+                                comms.send_message(client, curr_grid)
+                                if verbose:
+                                    print("Sent grid to comms socket")
+                            except Exception as e:
+                                if verbose:
+                                    print(f"CGOL runner_thread: Error sending message to comms socket: {e}")
+
                             if len(clients) > 0:  # Only broadcast if we have clients
                                 await broadcast(simulator_message)
                                 print("Sent grid update to clients")
