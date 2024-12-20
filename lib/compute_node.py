@@ -52,6 +52,11 @@ async def websocket_handler(websocket, simulator, verbose=False):
                             if verbose:
                                 print("Starting Main Loop")
                             simulator.start()
+                        case "dogens":
+                            if verbose:
+                                print("Running", data["data"], "generations")
+                            simulator.doGens(data["data"])
+                            await send_grid()
                         case "avadakadavra":
                             if verbose:
                                 print("Received avadakadavra. Closing connection.")

@@ -40,7 +40,7 @@ class CGOLSimulator:
     def tick(self):
         if(self.verbose): print("CGOLSimulator: Ticking")
         if(self.genskip > 0):
-            if(self.verbose): print("CGOLSimulator: Negative interval. Skipping ", self.interval*-1, " generations.")
+            if(self.verbose): print("CGOLSimulator: Negative interval. Skipping ", self.interval*-2, " generations.")
             for x in range(self.genskip):
                 self.current_grid = runner.next_gen(self.current_grid)
                 self.gen += 1
@@ -57,6 +57,10 @@ class CGOLSimulator:
     def start(self):
         if(self.verbose): print("CGOLSimulator: Starting")
         self.running = True
+    def doGens(self, numGens):
+        for x in range(numGens):
+            self.tick()
+        if(self.verbose): print("CGOLSimulator: Done doing"+str(numGens)+"generations.")
 
     # def send_message(self, message):
     #     self.queue.put(message)

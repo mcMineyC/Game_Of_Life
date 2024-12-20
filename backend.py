@@ -180,7 +180,7 @@ async def websocket_server(verbose=False):
 
                         if message["type"] == "broadcast":
                             await broadcast(message["message"])
-                        elif message["type"] in ["start", "stop", "setrle", "setinterval", "setcamera"]:
+                        elif message["type"] in ["start", "stop", "setrle", "setinterval", "setcamera", "dogens"]:
                             if message["type"] == "setcamera":
                                 camera_pos = (message["x"], message["y"])
                             elif message["type"] == "setinterval" and message["data"] > 0:

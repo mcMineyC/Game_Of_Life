@@ -82,10 +82,20 @@ async def main():
                         "type": "start",
                     }))
                 case "g":
+                    kb.set_normal_term()
                     skip = int(input("Number of gens to skip: "))
+                    kb.init_term()
                     await websocket.send(json.dumps({
                         "type": "setinterval",
                         "data": -1 * skip,
+                    }))
+                case "i":
+                    kb.set_normal_term()
+                    skip = int(input("Number of gens to do: "))
+                    kb.init_term()
+                    await websocket.send(json.dumps({
+                        "type": "dogens",
+                        "data": skip,
                     }))
                 case "[":
                     interval -= 0.05
