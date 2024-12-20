@@ -36,6 +36,7 @@ async def websocket_handler(websocket, simulator, verbose=False):
                     data = json.loads(message)
                     match(data["type"]):
                         case "setrle":
+                            print("Setting RLE to " + data["data"])
                             simulator.set_grid(cf.RLE_to_matrix(data["data"]))
                             await send_grid()
                         case "setinterval":
@@ -90,7 +91,7 @@ async def start_server(host="localhost", port=8765, verbose=False):
     async def handler(websocket):
         await websocket_handler(websocket, simulator, verbose)
 
-    async with websockets.serve(handler, host, port):
+    async with websockets.serve(handler, host, port, max_queue=1):
         if verbose:
             print(f"Compute server started on ws://{host}:{port}")
         await asyncio.Future()  # run forever

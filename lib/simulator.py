@@ -17,6 +17,7 @@ class CGOLSimulator:
         self.verbose = verbose
         self.running = False
         self.gen = 0
+        self.genskip = 0
         if(self.starting_grid != None): self.running = True
         if(self.verbose): print("CGOLSimulator: initialized.")
     def set_grid(self, grid):
@@ -27,18 +28,23 @@ class CGOLSimulator:
         # self.running = True
         if(self.verbose): print("CGOLSimulator: set grid.")
     def set_interval(self, interval):
-        self.interval = interval
-        if(self.verbose): print("CGOLSimulator: set interval.")
+        if(interval < 0):
+            print("CGOLSimulator: Negative interval. Skipping ", abs(interval), " generations.")
+            self.genskip = abs(interval)
+        else:
+            self.interval = interval
+            if(self.verbose): print("CGOLSimulator: set interval.")
     def stop(self):
         self.running = False
         if(self.verbose): print("CGOLSimulator: stopped.")
     def tick(self):
         if(self.verbose): print("CGOLSimulator: Ticking")
-        if(self.interval < 0):
-            print("CGOLSimulator: Negative interval. Skipping ", self.interval*-1, " generations.")
-            for _ in range(abs(int(self.interval))):
+        if(self.genskip > 0):
+            if(self.verbose): print("CGOLSimulator: Negative interval. Skipping ", self.interval*-1, " generations.")
+            for x in range(self.genskip):
                 self.current_grid = runner.next_gen(self.current_grid)
                 self.gen += 1
+            self.genskip = 0
         else:
             self.current_grid = runner.next_gen(self.current_grid)
             self.gen += 1

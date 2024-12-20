@@ -4,7 +4,7 @@ import websockets
 from flask import Flask, jsonify, request
 import typesense, json, queue
 # from lib import threading as libthread
-from lib import compute_node
+from lib import compute_node, simulator
 from lib import communication_functions as comms
 from lib import test_patterns as tp
 from lib import game_runner as runner
@@ -39,6 +39,7 @@ clients = set()
 
 # Threading lock for clients set
 clients_lock = threading.Lock()
+matrix_client = comms.get_socket()
 
 # HTTP route (handled by Flask)
 @app.route('/status')
@@ -101,6 +102,7 @@ def get_pattern_by_id(): # GET /patterns/get-named?id=xyz
 
 # WebSocket handling function (using websockets)
 async def handle_websocket(websocket):
+    global timer_start
     with clients_lock:
         clients.add(websocket)
     try:
@@ -121,6 +123,8 @@ async def handle_websocket(websocket):
                     message_queue.put({"type": "broadcast", "message": "Hello. Sesame!"})
                 elif json_message:
                     message_queue.put(message)
+                    print("Queued message")
+                    timer_start = time.time()
                 else:
                     message_queue.put({"type": "broadcast", "message": f"echo: {message}"})
 
@@ -141,20 +145,19 @@ def run_http():
 
 camera_pos = (0, 7)
 interval = 0.25
+timer_start = time.time()
 
 # Function to run the WebSocket server and process messages from the queue
-async def websocket_server():
-    global camera_pos, interval
+async def websocket_server(verbose=False):
+    global camera_pos, interval, client, timer_start
     start_server = websockets.serve(handle_websocket, "0.0.0.0", port+1)
     await start_server
     print("Started WebSocket server on port "+str(port+1))
-    verbose = False
 
-    # Create websocket connection to simulator
-    simulator_uri = "ws://192.168.30.41:8765"  # Port for simulator websocket
+    simulator_uri = "ws://192.168.30.41:8765"
     while True:
         try:
-            async with websockets.connect(simulator_uri) as simulator_ws:
+            async with websockets.connect(simulator_uri, max_queue=1) as simulator_ws:
                 print("Connected to simulator")
                 # Initial setup
                 await simulator_ws.send(json.dumps({
@@ -168,58 +171,58 @@ async def websocket_server():
                 }))
 
                 while True:
+                    # Process all pending messages in queue first
+                    while not message_queue.empty():
+                        message = message_queue.get_nowait()
+                        print("Time since last message:", time.time() - timer_start)
+                        if verbose:
+                            print("Processing message from queue:", message)
+
+                        if message["type"] == "broadcast":
+                            await broadcast(message["message"])
+                        elif message["type"] in ["start", "stop", "setrle", "setinterval", "setcamera"]:
+                            if message["type"] == "setcamera":
+                                camera_pos = (message["x"], message["y"])
+                            elif message["type"] == "setinterval" and message["data"] > 0:
+                                interval = message["data"]
+                            # Forward these messages directly to simulator
+                            await simulator_ws.send(json.dumps(message))
+                            await broadcast(json.dumps({
+                                "type": "info",
+                                "message": f"Sent {message['type']} command to simulator"
+                            }))
+
+                    # Check for simulator updates
                     try:
-                        # Process message queue
-                        try:
-                            message = message_queue.get_nowait()
+                        simulator_message = await asyncio.wait_for(
+                            simulator_ws.recv(),
+                            timeout=0.1
+                        )
+                        if simulator_message[0:1] == "{":
+                            simulator_message = json.loads(simulator_message)
 
-                            if message["type"] == "broadcast":
-                                await broadcast(message["message"])
-                            elif message["type"] in ["start", "stop", "setrle", "setinterval", "setcamera"]:
-                                if(message["type"] == "setcamera"):
-                                    camera_pos = (message["x"], message["y"])
-                                elif message["type"] == "setinterval" and message["data"] > 0:
-                                    interval = message["data"]
-                                # Forward these messages directly to simulator
-                                await simulator_ws.send(json.dumps(message))
-                                await broadcast(json.dumps({
-                                    "type": "info",
-                                    "message": f"Sent {message['type']} command to simulator"
-                                }))
-
-                        except queue.Empty:
-                            pass
-
-                        # Check for simulator updates
-                        try:
-                            simulator_message = await asyncio.wait_for(
-                                simulator_ws.recv(),
-                                timeout=0.1
-                            )
+                        if simulator_message["type"] == "grid":
+                            if verbose:
+                                print("Received grid from simulator")
                             try:
-                                comms.send_message(client, curr_grid)
+                                comms.send_message(matrix_client, simulator_message["data"])
                                 if verbose:
                                     print("Sent grid to comms socket")
                             except Exception as e:
                                 if verbose:
-                                    print(f"CGOL runner_thread: Error sending message to comms socket: {e}")
+                                    print(f"Error sending message to comms socket: {e}")
 
-                            if len(clients) > 0:  # Only broadcast if we have clients
-                                await broadcast(simulator_message)
+                        if len(clients) > 0:
+                            await broadcast(json.dumps(simulator_message))
+                            if verbose:
                                 print("Sent grid update to clients")
-                        except asyncio.TimeoutError:
-                            pass
 
-                        # Sleep based on client state
-                        has_clients = len(clients) > 0
-                        await asyncio.sleep(0.1 if has_clients else 0.5)
+                    except asyncio.TimeoutError:
+                        pass  # No simulator message available
 
-                    except websockets.ConnectionClosed:
-                        print("Lost connection to simulator. Attempting to reconnect...")
-                        break  # Break inner loop to attempt reconnection
-                    except Exception as e:
-                        logger.error(f"Error in message processing: {e}", exc_info=True)
-                        await asyncio.sleep(0.1)
+                    # Small delay to prevent CPU spinning
+                    await asyncio.sleep(0.01)
+
         except (websockets.ConnectionClosed, ConnectionRefusedError) as e:
             print(f"Failed to connect to compute node: {e}")
             await asyncio.sleep(5)  # Wait before retrying
