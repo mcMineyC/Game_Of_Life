@@ -14,11 +14,14 @@ async def main():
     interval = 0.25
 
     # Connect to WebSocket
-    async with websockets.connect('ws://localhost:5001') as websocket:
+    async with websockets.connect('ws://matrix.local:5001') as websocket:
         # Initial setup
         await websocket.send(json.dumps({
             "type": "setrle",
-            "data": "bo$2bo$3o!"
+            # "data": "bo$2bo$3o!"
+            # "data": cf.matrix_to_RLE(tp.master_library["snark loop"])
+            # "data": input("Enter RLE: ")
+            "data": "4bo$3b3o$2b2ob2o2$bobobobo2bo$2o3bo3b3o$2o3bo6bo$10bobo$8bobo$9bo2bo$12bo!"
         }))
 
         await websocket.send(json.dumps({
@@ -41,14 +44,14 @@ async def main():
                 said = False
 
             match(inputStr):
-                case "w":
+                case "s":
                     camera_pos = (camera_pos[0]+1, camera_pos[1])
                     await websocket.send(json.dumps({
                         "type": "setcamera",
                         "x": camera_pos[0],
                         "y": camera_pos[1]
                     }))
-                case "s":
+                case "w":
                     camera_pos = (camera_pos[0]-1, camera_pos[1])
                     await websocket.send(json.dumps({
                         "type": "setcamera",

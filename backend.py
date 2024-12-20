@@ -3,11 +3,13 @@ import asyncio
 import websockets
 from flask import Flask, jsonify, request
 import typesense, json, queue
-from lib import threading as libthread
+# from lib import threading as libthread
+from lib import compute_node
 from lib import communication_functions as comms
 from lib import test_patterns as tp
 from lib import game_runner as runner
 from lib import convert_functions as cf
+from lib.patterns import lexicon
 import multiprocessing as mp
 from lib import convert_functions
 import logging
@@ -81,9 +83,8 @@ def search_lexicon(): # GET /lexicon/search?q=term
 @app.route('/lexicon/get-named')
 def get_lexicon_by_id(): # GET /lexicon/get-named?id=xyz
     print("Sending pattern from lexicon by ID")
-    pats = json.load(open('data/lexicon.json'))
     try:
-        return json.dumps({"success": True, "result": pats[request.args.get('id')]})
+        return json.dumps({"success": True, "result": lexicon[request.args.get('id')]})
     except:
         print("Error: Pattern not found")
         return json.dumps({"success": False, "error": "Pattern not found in lexicon"})
@@ -93,13 +94,13 @@ def get_pattern_by_id(): # GET /patterns/get-named?id=xyz
     print("Sending pattern by ID")
     pats = json.load(open('data/patterns.json'))
     try:
-        return json.dumps({"success": True, "result": pats[request.args.get('id')]})
+        return json.dumps({"success": True, "result": lexicon[request.args.get('id')]})
     except:
         print("Error: Pattern not found")
         return json.dumps({"success": False, "error": "Pattern not found"})
 
 # WebSocket handling function (using websockets)
-async def handle_websocket(websocket, path):
+async def handle_websocket(websocket):
     with clients_lock:
         clients.add(websocket)
     try:
@@ -107,7 +108,7 @@ async def handle_websocket(websocket, path):
             logger.debug(f"Received message from WebSocket client: {message}")
             try:
                 if message[0:1] == "{":
-                    print("Deserializing message")
+                    # print("Deserializing message")
                     message = json.loads(message)
                     json_message = True
                 else:
@@ -143,84 +144,68 @@ interval = 0.25
 
 # Function to run the WebSocket server and process messages from the queue
 async def websocket_server():
+    global camera_pos, interval
     start_server = websockets.serve(handle_websocket, "0.0.0.0", port+1)
     await start_server
     print("Started WebSocket server on port "+str(port+1))
     verbose = False
-    showOutput = False
-    ippipe, icpipe = mp.Pipe()
-    oppipe, ocpipe = mp.Pipe()
-    p = mp.Process(target=libthread.runner_thread, args=(ippipe, ocpipe, comms.get_socket(), verbose))
-    p.start()
-    icpipe.send({
-        "type": "setgrid",
-        "data": tp.master_library["snark loop"]
-    })
-    icpipe.send({
-        "type": "setcamera",
-        "data": camera_pos,
-    })
 
-    while True:
-        try:
-            # Process message queue
+    # Create websocket connection to simulator
+    simulator_uri = "ws://localhost:8765"  # Port for simulator websocket
+    async with websockets.connect(simulator_uri) as simulator_ws:
+        # Initial setup
+        await simulator_ws.send(json.dumps({
+            "type": "setgrid",
+            "data": tp.master_library["snark loop"]
+        }))
+        await simulator_ws.send(json.dumps({
+            "type": "setcamera",
+            "data": camera_pos
+        }))
+
+        while True:
             try:
-                message = message_queue.get_nowait()
-                # print("Message queue gotten "+str(message))
+                # Process message queue
+                try:
+                    message = message_queue.get_nowait()
 
-                if message["type"] == "broadcast":
-                    await broadcast(message["message"])
-                elif message["type"] == "start":
-                    await broadcast(json.dumps({"type": "info", "message": "Starting simulator"}))
-                    # print("Starting CGOL simulator")
-                    icpipe.send({"type": "start"})
-                elif message["type"] == "stop":
-                    await broadcast(json.dumps({"type": "info", "message": "Stopping simulator"}))
-                    # print("Stopping CGOL simulator")
-                    icpipe.send({"type": "stop"})
-                elif message["type"] == "setrle":
-                    await broadcast(json.dumps({"type": "info", "message": "Setting grid"}))
-                    # print("Setting grid")
-                    icpipe.send({
-                        "type": "setgrid",
-                        "data": convert_functions.RLE_to_matrix(message["data"])
-                    })
-                    await broadcast(json.dumps({"type": "info", "message": "Set grid"}))
-                elif message["type"] == "setinterval":
-                    await broadcast(json.dumps({"type": "info", "message": "Setting interval"}))
-                    # print("Setting interval")
-                    icpipe.send({
-                        "type": "setinterval",
-                        "data": message["data"]
-                    })
-                elif message["type"] == "setcamera":
-                    # print("Setting camera")
-                    icpipe.send({
-                        "type": "setcamera",
-                        "data": (message["x"], message["y"])
-                    })
-                    await broadcast(json.dumps({"type": "info", "message": f"Set camera to {message['x']}, {message['y']}."}))
+                    if message["type"] == "broadcast":
+                        await broadcast(message["message"])
+                    elif message["type"] in ["start", "stop", "setrle", "setinterval", "setcamera"]:
+                        # Forward these messages directly to simulator
+                        await simulator_ws.send(json.dumps(message))
+                        await broadcast(json.dumps({
+                            "type": "info",
+                            "message": f"Sent {message['type']} command to simulator"
+                        }))
 
-            except queue.Empty:
-                # print("No message in queue")
-                # Check pipe if no messages in queue
-                if oppipe.poll():
-                    # print("Received message from CGOL simulator")
-                    pipe_data = oppipe.recv()
-                    has_clients = len(clients) > 0
-                    if has_clients:  # Only broadcast if we have clients
-                        await broadcast(json.dumps(pipe_data))
-                    # print("Sent message to clients")
+                except queue.Empty:
+                    pass
 
-                # Sleep only when both queue and pipe are empty
+                # Check for simulator updates
+                try:
+                    simulator_message = await asyncio.wait_for(
+                        simulator_ws.recv(),
+                        timeout=0.1
+                    )
+                    if len(clients) > 0:  # Only broadcast if we have clients
+                        await broadcast(simulator_message)
+                        print("Sent grid update to clients")
+                except asyncio.TimeoutError:
+                    pass
+
+                # Sleep based on client state
                 has_clients = len(clients) > 0
-                # print("Has clients: "+str(has_clients))
-                # print("Sleeping")
                 await asyncio.sleep(0.1 if has_clients else 0.5)
 
-        except Exception as e:
-            logger.error(f"Error in message processing: {e}", exc_info=True)
-            await asyncio.sleep(0.1)
+            except Exception as e:
+                logger.error(f"Error in message processing: {e}", exc_info=True)
+                await asyncio.sleep(0.1)
+
+def run_simulator():
+    """Function to run the simulator process"""
+    compute_node.run_websocket_server(port=8765, verbose=True)
+
 
 async def broadcast(message):
     # print("Broadcasting message")
@@ -240,7 +225,7 @@ async def broadcast(message):
 
     if tasks:
         await asyncio.gather(*tasks)
-    print("Broadcasted message")
+    # print("Broadcasted message")
 
 def run_websocket():
     loop = asyncio.new_event_loop()
@@ -255,9 +240,18 @@ def run_websocket():
 
 if __name__ == "__main__":
     try:
+        # Create threads for HTTP and WebSocket servers
         http_thread = threading.Thread(target=run_http, daemon=True)
         websocket_thread = threading.Thread(target=run_websocket, daemon=True)
 
+        # Create process for simulator
+        simulator_process = mp.Process(
+            target=run_simulator,
+            daemon=True
+        )
+
+        # Start everything
+        simulator_process.start()
         http_thread.start()
         websocket_thread.start()
 
@@ -267,6 +261,7 @@ if __name__ == "__main__":
                 time.sleep(1)
             except KeyboardInterrupt:
                 print("\nShutting down gracefully...")
+                simulator_process.terminate()
                 sys.exit(0)
 
     except Exception as e:
