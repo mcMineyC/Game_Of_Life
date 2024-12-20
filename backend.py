@@ -1,4 +1,4 @@
-import threading, sys, time
+import threading, sys, time, os
 import asyncio
 import websockets
 from flask import Flask, jsonify, request
@@ -151,56 +151,70 @@ async def websocket_server():
     verbose = False
 
     # Create websocket connection to simulator
-    simulator_uri = "ws://localhost:8765"  # Port for simulator websocket
-    async with websockets.connect(simulator_uri) as simulator_ws:
-        # Initial setup
-        await simulator_ws.send(json.dumps({
-            "type": "setgrid",
-            "data": tp.master_library["snark loop"]
-        }))
-        await simulator_ws.send(json.dumps({
-            "type": "setcamera",
-            "data": camera_pos
-        }))
+    simulator_uri = "ws://192.168.30.41:8765"  # Port for simulator websocket
+    while True:
+        try:
+            async with websockets.connect(simulator_uri) as simulator_ws:
+                print("Connected to simulator")
+                # Initial setup
+                await simulator_ws.send(json.dumps({
+                    "type": "setrle",
+                    "data": "bo$2bo$3o!"
+                }))
+                await simulator_ws.send(json.dumps({
+                    "type": "setcamera",
+                    "x": camera_pos[0],
+                    "y": camera_pos[1],
+                }))
 
-        while True:
-            try:
-                # Process message queue
-                try:
-                    message = message_queue.get_nowait()
+                while True:
+                    try:
+                        # Process message queue
+                        try:
+                            message = message_queue.get_nowait()
 
-                    if message["type"] == "broadcast":
-                        await broadcast(message["message"])
-                    elif message["type"] in ["start", "stop", "setrle", "setinterval", "setcamera"]:
-                        # Forward these messages directly to simulator
-                        await simulator_ws.send(json.dumps(message))
-                        await broadcast(json.dumps({
-                            "type": "info",
-                            "message": f"Sent {message['type']} command to simulator"
-                        }))
+                            if message["type"] == "broadcast":
+                                await broadcast(message["message"])
+                            elif message["type"] in ["start", "stop", "setrle", "setinterval", "setcamera"]:
+                                if(message["type"] == "setcamera"):
+                                    camera_pos = (message["x"], message["y"])
+                                elif message["type"] == "setinterval" and message["data"] > 0:
+                                    interval = message["data"]
+                                # Forward these messages directly to simulator
+                                await simulator_ws.send(json.dumps(message))
+                                await broadcast(json.dumps({
+                                    "type": "info",
+                                    "message": f"Sent {message['type']} command to simulator"
+                                }))
 
-                except queue.Empty:
-                    pass
+                        except queue.Empty:
+                            pass
 
-                # Check for simulator updates
-                try:
-                    simulator_message = await asyncio.wait_for(
-                        simulator_ws.recv(),
-                        timeout=0.1
-                    )
-                    if len(clients) > 0:  # Only broadcast if we have clients
-                        await broadcast(simulator_message)
-                        print("Sent grid update to clients")
-                except asyncio.TimeoutError:
-                    pass
+                        # Check for simulator updates
+                        try:
+                            simulator_message = await asyncio.wait_for(
+                                simulator_ws.recv(),
+                                timeout=0.1
+                            )
+                            if len(clients) > 0:  # Only broadcast if we have clients
+                                await broadcast(simulator_message)
+                                print("Sent grid update to clients")
+                        except asyncio.TimeoutError:
+                            pass
 
-                # Sleep based on client state
-                has_clients = len(clients) > 0
-                await asyncio.sleep(0.1 if has_clients else 0.5)
+                        # Sleep based on client state
+                        has_clients = len(clients) > 0
+                        await asyncio.sleep(0.1 if has_clients else 0.5)
 
-            except Exception as e:
-                logger.error(f"Error in message processing: {e}", exc_info=True)
-                await asyncio.sleep(0.1)
+                    except websockets.ConnectionClosed:
+                        print("Lost connection to simulator. Attempting to reconnect...")
+                        break  # Break inner loop to attempt reconnection
+                    except Exception as e:
+                        logger.error(f"Error in message processing: {e}", exc_info=True)
+                        await asyncio.sleep(0.1)
+        except (websockets.ConnectionClosed, ConnectionRefusedError) as e:
+            print(f"Failed to connect to compute node: {e}")
+            await asyncio.sleep(5)  # Wait before retrying
 
 def run_simulator():
     """Function to run the simulator process"""
@@ -238,6 +252,15 @@ def run_websocket():
     finally:
         loop.close()
 
+
+def monitor_process(process):
+    """Monitor a process and exit if it dies"""
+    while True:
+        if not process.is_alive():
+            print("Simulator process died! Shutting down...")
+            os._exit(1)  # Force exit the entire program
+        time.sleep(1)
+
 if __name__ == "__main__":
     try:
         # Create threads for HTTP and WebSocket servers
@@ -250,10 +273,18 @@ if __name__ == "__main__":
             daemon=True
         )
 
+        # Create monitor thread
+        monitor_thread = threading.Thread(
+            target=monitor_process,
+            args=(simulator_process,),
+            daemon=True
+        )
+
         # Start everything
         simulator_process.start()
         http_thread.start()
         websocket_thread.start()
+        monitor_thread.start()
 
         # Keep the main thread running
         while True:

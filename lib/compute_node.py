@@ -11,7 +11,7 @@ async def websocket_handler(websocket, simulator, verbose=False):
     """Handle websocket connection and messages"""
     try:
         if verbose:
-            print("WebSocket connection established")
+            print("compute connection established")
 
         async def send_grid():
             # Helper function to send grid through websocket
@@ -25,31 +25,37 @@ async def websocket_handler(websocket, simulator, verbose=False):
 
         while True:
             try:
-                message = await websocket.recv()
-                data = json.loads(message)
+                # Handle messages without blocking
+                message = None
+                try:
+                    message = await asyncio.wait_for(websocket.recv(), timeout=0.01)
+                except asyncio.TimeoutError:
+                    pass
 
-                match(data["type"]):
-                    case "setgrid":
-                        simulator.set_grid(data["data"])
-                        await send_grid()
-                    case "setinterval":
-                        simulator.set_interval(data["data"])
-                    case "setcamera":
-                        if verbose:
-                            print("Setting camera to ", data["data"])
-                        simulator.camera_pos = data["data"]
-                        await send_grid()
-                    case "stop":
-                        simulator.stop()
-                    case "start":
-                        if verbose:
-                            print("Starting Main Loop")
-                        simulator.start()
-                    case "avadakadavra":
-                        if verbose:
-                            print("Received avadakadavra. Closing connection.")
-                        await websocket.close()
-                        return
+                if message:
+                    data = json.loads(message)
+                    match(data["type"]):
+                        case "setgrid":
+                            simulator.set_grid(data["data"])
+                            await send_grid()
+                        case "setinterval":
+                            simulator.set_interval(data["data"])
+                        case "setcamera":
+                            if verbose:
+                                print("Setting camera to ", (data["x"], data["y"]))
+                            simulator.camera_pos = (data["x"], data["y"])
+                            await send_grid()
+                        case "stop":
+                            simulator.stop()
+                        case "start":
+                            if verbose:
+                                print("Starting Main Loop")
+                            simulator.start()
+                        case "avadakadavra":
+                            if verbose:
+                                print("Received avadakadavra. Closing connection.")
+                            await websocket.close()
+                            return
 
                 # Main simulation loop
                 if simulator.running:
@@ -58,6 +64,7 @@ async def websocket_handler(websocket, simulator, verbose=False):
 
                     simulator.tick()
                     await send_grid()
+                    print("sended grid")
 
                     # Handle timing
                     if simulator.interval > 0:
@@ -66,11 +73,14 @@ async def websocket_handler(websocket, simulator, verbose=False):
                         await asyncio.sleep(0.016)  # ~60fps
 
             except websockets.ConnectionClosed:
-                print("WebSocket connection closed")
+                print("compute connection closed")
                 break
 
     except Exception as e:
-        print(f"Error in websocket handler: {e}")
+        print(f"Error in compute websocket handler: {str(e)}")
+        if verbose:
+            import traceback
+            traceback.print_exc()
         await websocket.close()
 
 async def start_server(host="localhost", port=8765, verbose=False):
@@ -82,9 +92,9 @@ async def start_server(host="localhost", port=8765, verbose=False):
 
     async with websockets.serve(handler, host, port):
         if verbose:
-            print(f"Compute WebSocket server started on ws://{host}:{port}")
+            print(f"Compute server started on ws://{host}:{port}")
         await asyncio.Future()  # run forever
 
-def run_websocket_server(host="localhost", port=8765, verbose=False):
+def run_websocket_server(host="0.0.0.0", port=8765, verbose=False):
     """Run the WebSocket server in the main thread"""
     asyncio.run(start_server(host, port, verbose))
