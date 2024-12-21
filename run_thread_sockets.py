@@ -10,10 +10,11 @@ async def main():
     kb = comms.KBHit()
     verbose = True
     showOutput = False
+    autofocus = False
     camera_pos = (-1, 1)
     interval = 0.25
-    url = "ws://localhost:5001"
-    # url = "ws://matric.local:5001"
+    # url = "ws://localhost:5001"
+    url = "ws://matrix.local:5001"
     # Connect to WebSocket
     async with websockets.connect(url) as websocket:
         # Initial setup
@@ -29,6 +30,13 @@ async def main():
             "type": "setcamera",
             "x": camera_pos[0],
             "y": camera_pos[1],
+        }))
+        await websocket.send(json.dumps({
+            "type": "setinterval",
+            "data": 0.25,
+        }))
+        await websocket.send(json.dumps({
+            "type": "stop",
         }))
 
         said = False
@@ -125,6 +133,21 @@ async def main():
                     }))
                 case "o":
                     showOutput = not showOutput
+                case "x":
+                    await websocket.send(json.dumps({
+                        "type": "setautofocus",
+                        "data": "follow",
+                    }))
+                case "c":
+                    await websocket.send(json.dumps({
+                        "type": "setautofocus",
+                        "data": "center",
+                    }))
+                case "v":
+                    await websocket.send(json.dumps({
+                        "type": "setautofocus",
+                        "data": "none",
+                    }))
                 case "q":
                     await websocket.send(json.dumps({
                         "type": "avadakadavra",
@@ -157,6 +180,11 @@ async def main():
                     currGrid = data["data"]
                     if(showOutput):
                         print(currGrid)
+                elif data["type"] == "info":
+                    print("New message from server:", data["message"])
+                elif data["type"] == "camerapos":
+                    camera_pos = (data["data"]["x"], data["data"]["y"])
+                    if(showOutput): print("Camera at position", camera_pos)
             except asyncio.TimeoutError:
                 pass
 

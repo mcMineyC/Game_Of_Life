@@ -40,12 +40,18 @@ clients = set()
 # Threading lock for clients set
 clients_lock = threading.Lock()
 matrix_client = comms.get_socket()
+connections = {
+        "status": "OK",
+        "connector": True,
+        "compute": False,
+        "clients": False,
+}
 
 # HTTP route (handled by Flask)
 @app.route('/status')
 def status(): # GET /status
     print("Status: OK")
-    return '{"status":"OK"}'
+    return jsonify(connections)
 
 @app.route('/')
 def index():
@@ -59,10 +65,23 @@ def send_message(msg):
 
 @app.route('/lexicon/get')
 def get_lexicon(): # GET /lexicon/get
-    print("Sending lexicon")
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 50))
+    print("Sending lexicon page", page)
+
     pats = json.load(open('data/lexicon_list.json'))
+
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+
+    paginated_pats = pats[start_idx:end_idx]
+
     return json.dumps({
-        'patterns': pats
+        'patterns': paginated_pats,
+        'total': len(pats),
+        'page': page,
+        'per_page': per_page,
+        'total_pages': (len(pats) + per_page - 1) // per_page
     })
 
 @app.route('/lexicon/search')
@@ -100,11 +119,92 @@ def get_pattern_by_id(): # GET /patterns/get-named?id=xyz
         print("Error: Pattern not found")
         return json.dumps({"success": False, "error": "Pattern not found"})
 
+@app.route('/patterns/get')
+def get_patterns(): # GET /patterns/get
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 50))
+    print("Sending patterns page", page)
+
+    pats = json.load(open('data/patterns.json'))
+
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+
+    paginated_pats = pats[start_idx:end_idx]
+
+    return json.dumps({
+        'patterns': paginated_pats,
+        'total': len(pats),
+        'page': page,
+        'per_page': per_page,
+        'total_pages': (len(pats) + per_page - 1) // per_page
+    })
+
+@app.route('/patterns/search')
+def search_patterns(): # GET /patterns/search?q=term
+    print("Searching patterns")
+    r = client.collections['patterns'].documents.search({
+        'q': request.args.get('q'),
+        'query_by': 'name',
+    })
+    results = r['hits']
+    list = []
+    # for i in results:
+    #     i['document']['comments'] = json.loads(i['document']['comments'])
+    #     list.append(i['document'])
+    return json.dumps({
+        'patterns': list
+    }, indent=4)
+
+@app.route('/run')
+def run(): # GET /run
+    print("Running simulation")
+    message_queue.put({"type": "stop"})
+    message_queue.put({"type": "setrle", "data": request.args.get('rle')})
+    message_queue.put({"type": "setinterval", "data": float(request.args.get('interval', 0.25))})
+    message_queue.put({"type": "setcamera", "x": 0, "y": 0})
+    message_queue.put({"type": "start"})
+    return jsonify(success=True, status="Simulation started")
+
+@app.route('/stop')
+def stop(): # GET /stop
+    print("Stopping simulation")
+    message_queue.put({"type": "stop"})
+    return jsonify(success=True, status="Simulation stopped")
+
+@app.route('/translate', methods=['POST'])
+def translate(): # POST /translate
+    data = request.get_json()
+    intype = data.get('from')
+    outtype = data.get('to')
+    indata = data.get('data')
+
+    if intype not in ['rle', 'txt'] or outtype not in ['rle', 'txt']:
+        return jsonify(success=False, error="Invalid input or output type")
+
+    try:
+        if intype == 'rle' and outtype == 'txt':
+            result = cf.easy_RLE_to_txt(indata)
+        elif intype == 'txt' and outtype == 'rle':
+            result = cf.txt_to_RLE(indata)
+        else:
+            result = indata # Same format, no conversion needed
+
+        return jsonify(success=True, result=result)
+    except Exception as e:
+        return jsonify(success=False, error=str(e))
+
+
 # WebSocket handling function (using websockets)
 async def handle_websocket(websocket):
     global timer_start
     with clients_lock:
         clients.add(websocket)
+        if len(clients) == 0:
+            print("No clients connected")
+            connections["clients"] = False
+        else:
+            connections["clients"] = True
     try:
         async for message in websocket:
             logger.debug(f"Received message from WebSocket client: {message}")
@@ -143,9 +243,10 @@ async def handle_websocket(websocket):
 def run_http():
     app.run(host="0.0.0.0", port=port, threaded=True)
 
-camera_pos = (0, 7)
-interval = 0.25
 timer_start = time.time()
+camera_pos = (0,0)
+interval = 0.25
+autofocus = False
 
 # Function to run the WebSocket server and process messages from the queue
 async def websocket_server(verbose=False):
@@ -159,15 +260,20 @@ async def websocket_server(verbose=False):
         try:
             async with websockets.connect(simulator_uri, max_queue=1) as simulator_ws:
                 print("Connected to simulator")
+                connections["compute"] = True
                 # Initial setup
+                # await simulator_ws.send(json.dumps({
+                #     "type": "setrle",
+                #     "data": "bo$2bo$3o!"
+                # }))
+                # await simulator_ws.send(json.dumps({
+                #     "type": "setcamera",
+                #     "x": camera_pos[0],
+                #     "y": camera_pos[1],
+                # }))
                 await simulator_ws.send(json.dumps({
-                    "type": "setrle",
-                    "data": "bo$2bo$3o!"
-                }))
-                await simulator_ws.send(json.dumps({
-                    "type": "setcamera",
-                    "x": camera_pos[0],
-                    "y": camera_pos[1],
+                    "type": "setinterval",
+                    "data": 0.25,
                 }))
 
                 while True:
@@ -180,11 +286,15 @@ async def websocket_server(verbose=False):
 
                         if message["type"] == "broadcast":
                             await broadcast(message["message"])
-                        elif message["type"] in ["start", "stop", "setrle", "setinterval", "setcamera", "dogens"]:
+                        elif message["type"] in ["start", "stop", "setrle", "setinterval", "setcamera", "dogens", "setautofocus"]:
                             if message["type"] == "setcamera":
                                 camera_pos = (message["x"], message["y"])
                             elif message["type"] == "setinterval" and message["data"] > 0:
                                 interval = message["data"]
+                            elif message["type"] == "setautofocus":
+                                print("Autofocus:", message["data"])
+                                autofocus = message["data"]
+
                             # Forward these messages directly to simulator
                             await simulator_ws.send(json.dumps(message))
                             await broadcast(json.dumps({
@@ -209,8 +319,18 @@ async def websocket_server(verbose=False):
                                 if verbose:
                                     print("Sent grid to comms socket")
                             except Exception as e:
+                                connections["connector"] = False
                                 if verbose:
                                     print(f"Error sending message to comms socket: {e}")
+                        elif simulator_message["type"] == "camerapos":
+                            camera_pos = simulator_message["data"]
+                            camera_pos = (camera_pos["x"], camera_pos["y"])
+                            await broadcast(json.dumps(simulator_message))
+                            if verbose:
+                                print("Received camera from simulator")
+                        elif simulator_message["type"] == "info":
+                            if verbose:
+                                print("Received info from simulator")
 
                         if len(clients) > 0:
                             await broadcast(json.dumps(simulator_message))
@@ -224,6 +344,7 @@ async def websocket_server(verbose=False):
                     await asyncio.sleep(0.01)
 
         except (websockets.ConnectionClosed, ConnectionRefusedError) as e:
+            connections["compute"] = False
             print(f"Failed to connect to compute node: {e}")
             await asyncio.sleep(5)  # Wait before retrying
 

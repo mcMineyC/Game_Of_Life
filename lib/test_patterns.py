@@ -4,8 +4,9 @@
 
 import pprint
 
+empty_chunk = [[False for _ in range(8)] for _ in range(8)]
 master_library = {
-
+'empty': {(0, 0): empty_chunk},
 'glider': {(0, 0): [
     [False, False, False, False, False, False, False, False], # (X == 0, Y == 0-7)
     [False, False, False, False, False, False, False, False], # (X == 1, Y == 0-7)

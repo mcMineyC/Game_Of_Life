@@ -7,7 +7,15 @@ from lib import test_patterns as tp
 from lib.simulator import CGOLSimulator
 import time
 
+default_state = {
+    "interval": 0.25,
+    "starting_grid": tp.master_library["empty"],
+    "camera_pos": (0, 0),
+    "autofocus": "none"
+}
+
 async def websocket_handler(websocket, simulator, verbose=False):
+    autofocus = False
     """Handle websocket connection and messages"""
     try:
         if verbose:
@@ -15,6 +23,16 @@ async def websocket_handler(websocket, simulator, verbose=False):
 
         async def send_grid():
             # Helper function to send grid through websocket
+            if(autofocus != "none"):
+                if(verbose): print("Auto-focusing")
+                x, y = simulator.autofocus(autofocus)
+                await websocket.send(json.dumps({
+                    "type": "camerapos",
+                    "data": {
+                        "x": x,
+                        "y": y
+                    },
+                }))
             curr_grid = simulator.process_grid()
             await websocket.send(json.dumps({
                 "type": "grid",
@@ -57,6 +75,19 @@ async def websocket_handler(websocket, simulator, verbose=False):
                                 print("Running", data["data"], "generations")
                             simulator.doGens(data["data"])
                             await send_grid()
+                        case "setautofocus":
+                            autofocus = data["data"]
+                            if(verbose):
+                                print("Autofocusing with mode", data["data"])
+                            x, y = simulator.autofocus(data["data"])
+                            # await websocket.send(json.dumps({
+                            #     "type": "camerapos",
+                            #     "data": {
+                            #         "x": x,
+                            #         "y": y
+                            #     },
+                            # }))
+                            await send_grid()
                         case "avadakadavra":
                             if verbose:
                                 print("Received avadakadavra. Closing connection.")
@@ -70,6 +101,8 @@ async def websocket_handler(websocket, simulator, verbose=False):
                     print(str(simulator.current_grid))
 
                     simulator.tick()
+                    if(autofocus != "none"):
+                        simulator.autofocus(autofocus)
                     await send_grid()
 
                     # Handle timing
@@ -79,7 +112,11 @@ async def websocket_handler(websocket, simulator, verbose=False):
                         await asyncio.sleep(0.016)  # ~60fps
 
             except websockets.ConnectionClosed:
-                print("compute connection closed")
+                simulator.stop()
+                simulator.set_grid(default_state["starting_grid"])
+                simulator.camera_pos = default_state["camera_pos"]
+                autofocus = default_state["autofocus"]
+                print("compute connection closed. Setting default state.")
                 break
 
     except Exception as e:
