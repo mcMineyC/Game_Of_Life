@@ -12,9 +12,10 @@ async def main():
     showOutput = False
     camera_pos = (-1, 1)
     interval = 0.25
-
+    url = "ws://localhost:5001"
+    # url = "ws://matric.local:5001"
     # Connect to WebSocket
-    async with websockets.connect('ws://matrix.local:5001') as websocket:
+    async with websockets.connect(url) as websocket:
         # Initial setup
         await websocket.send(json.dumps({
             "type": "setrle",

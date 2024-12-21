@@ -26,5 +26,8 @@ comment_items_regex = re.compile(r'([A-Z ]+) ([0-9 ]+)|([A-Z][a-z]+)')
 
 greedy_regex = re.compile(r'\$+')
 
+line_expander = re.compile(r'(\d{1,})(\$)')
+splitter_regex = re.compile(r'(\d{0,})([o|b])')
+
 def regexes():
     print("Regexes are loaded.")

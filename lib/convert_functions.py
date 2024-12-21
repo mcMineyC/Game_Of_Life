@@ -35,13 +35,12 @@ def easy_RLE_to_txt(erttRLE):
     else:
         # If no match is found (i.e., no comment and no dimensions), call the sizing function
         print("No rule comment found, sizing the pattern...")
-        width, height, grid = sizer(erttRLE)
+        width, height = sizer(erttRLE)
 
         # Remove whitespace from the grid
-        erttRLEnoWS = ''.join(grid.split())
 
         # Process the RLE string with advanced_RLE_to_txt (assuming it is defined elsewhere)
-        returnVal = advanced_RLE_to_txt(width, height, erttRLEnoWS)
+        returnVal = advanced_RLE_to_txt(width, height, erttRLE)
         return returnVal
 
 def sizer(erttRLE):
@@ -53,11 +52,29 @@ def sizer(erttRLE):
     grid = erttRLE.strip().replace("!", "")
 
     # Estimate the dimensions by scanning the string for max width and height
-    rows = grid.split('$')
-    height = len(rows)  # The height is the number of rows
-    width = max(len(row) for row in rows)  # The width is the length of the longest row
 
-    return width, height-1, grid
+    def multiply_match(match):
+        count = int(match.group(1))
+        char = match.group(2)
+        return char * count
+
+    expanded_grid = r.line_expander.sub(multiply_match, grid) # unpacks compressed lines (2$)
+    rows = expanded_grid.split('$')
+    height = len(rows)  # The height is the number of rows
+    width = -1
+    for row in rows:
+        row_width = 0
+        matches = re.findall(r.splitter_regex, row)
+        for match in matches:
+            if(str(match[0]).isnumeric()):
+                row_width += int(match[0])
+            else:
+                row_width += 1
+        # print(row, row_width)
+        width = max(width, row_width)
+
+    # print("\n\n")
+    return width, height
 
 #This function converts RLE to plaintext. It accepts the pattern RLE, the X bound of the pattern, and the Y bound.
 def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
@@ -66,6 +83,22 @@ def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
     arttOutput = ''
     arttInt = ''
     arttCharsInLine = 0
+    # grid = erttRLE.strip().replace("!", "")
+
+    # # Estimate the dimensions by scanning the string for max width and height
+    # rows = grid.split('$')
+    # height = len(rows)  # The height is the number of rows
+    # width = -1
+    # for x in range(len(rows):
+    #     row_width = 0
+    #     matches = re.findall(r.splitter_regex, rows[x])
+    #     for match in matches:
+    #         if(str(match[0]).isnumeric()):
+    #             row_width += int(match[0])
+    #         else:
+    #             row_width += 1
+    #     # print(row, row_width)
+    #     width = max(width, row_width)
 
     for char in arttRLE:
         if  char in ('\n', '\t', ' '):
@@ -92,9 +125,10 @@ def advanced_RLE_to_txt(arttXBound, arttYBound, arttRLE):
             arttInt = ''
 
     #ensure that output is not flawed via asserts
-    arttOutputLines = r.line_regex.findall(arttOutput)
+    arttOutputLines = arttOutput.strip().split('\n')
     assert len(arttOutputLines) == arttYBound, str(len(arttOutputLines)) + ' != ' + str(arttYBound)
-    for arttLine in arttOutputLines: assert len(arttLine) == arttXBound, str(len(arttLine)) + ' != ' + str(arttXBound)
+    for arttLine in arttOutputLines:
+        assert len(arttLine) == arttXBound, str(len(arttLine)) + ' != ' + str(arttXBound)
     # return arttOutput[:-1] #remove extra '\n' at the end of str
     return arttOutput
 
@@ -181,7 +215,7 @@ def txt_to_RLE(ttrInput, ttrComment=r.default_RLE_comment): #TODO accept comment
         ttrDollarSub = re.compile('\\$' * ttrDollarLen)
         ttrOutputRLE = ttrDollarSub.sub('%s$' % ttrDollarLen, ttrOutputRLE)
 
-    ttrOutputHeader = 'x = %s, y = %s, rule = B3/S23\n' % (ttrWidth, ttrHeight)
+    ttrOutputHeader = '\nx = %s, y = %s, rule = B3/S23\n' % (ttrWidth, ttrHeight)
     return ttrComment + ttrOutputHeader + ttrOutputRLE
 
 

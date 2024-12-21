@@ -1,5 +1,6 @@
 import json, hashlib
-from regexes_converts import grid_paragraph_regex, txt_to_RLE, RLE_regex, comment_to_dict
+from lib.regexes import grid_paragraph_regex, RLE_regex
+from lib.convert_functions import txt_to_RLE, comment_to_dict
 #TODO fix import here
 
 def hasher(MD5Input):
@@ -23,7 +24,10 @@ def format_lexicon(input, output_file):
     json_file.close()
 
 def convert_lexicon(paragraph):
+        # print(paragraph)
         rle = txt_to_RLE(paragraph[2])
+        # for row in rle.split("\n"):
+            # print("\""+row+"\"")
         raw_rle = rle.split("\n")[2]
         name = paragraph[0]
         hash = hasher(name + rle) #why is hash blue? TODO fix this and input as well?
