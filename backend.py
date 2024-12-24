@@ -2,6 +2,7 @@ import threading, sys, time, os
 import asyncio
 import websockets
 from flask import Flask, jsonify, request
+from flask_cors import CORS, cross_origin
 import typesense, json, queue
 # from lib import threading as libthread
 from lib import compute_node, simulator
@@ -30,6 +31,8 @@ client = typesense.Client({
 
 # Initialize Flask app
 app = Flask(__name__)
+cors = CORS(app)
+app.config["CORS_HEADERS"] = "Content-Type"
 
 # Queue for communicattion between the HTTP and WebSocket threads
 message_queue = queue.Queue()
@@ -49,21 +52,25 @@ connections = {
 
 # HTTP route (handled by Flask)
 @app.route('/status')
+@cross_origin()
 def status(): # GET /status
     print("Status: OK")
     return jsonify(connections)
 
 @app.route('/')
+@cross_origin()
 def index():
     return jsonify(message="Hello from Flask HTTP server")
 
 @app.route('/send_message/<msg>')
+@cross_origin()
 def send_message(msg):
     """ HTTP route to add message to the queue """
     message_queue.put(msg)  # Add the message to the queue
     return jsonify(status="Message queued for WebSocket clients", message=msg)
 
 @app.route('/lexicon/get')
+@cross_origin()
 def get_lexicon(): # GET /lexicon/get
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 50))
@@ -85,6 +92,7 @@ def get_lexicon(): # GET /lexicon/get
     })
 
 @app.route('/lexicon/search')
+@cross_origin()
 def search_lexicon(): # GET /lexicon/search?q=term
     print("Searching lexicon")
     r = client.collections['lexicon'].documents.search({
@@ -101,6 +109,7 @@ def search_lexicon(): # GET /lexicon/search?q=term
     }, indent=4)
 
 @app.route('/lexicon/get-named')
+@cross_origin()
 def get_lexicon_by_id(): # GET /lexicon/get-named?id=xyz
     print("Sending pattern from lexicon by ID")
     try:
@@ -110,6 +119,7 @@ def get_lexicon_by_id(): # GET /lexicon/get-named?id=xyz
         return json.dumps({"success": False, "error": "Pattern not found in lexicon"})
 
 @app.route('/patterns/get-named')
+@cross_origin()
 def get_pattern_by_id(): # GET /patterns/get-named?id=xyz
     print("Sending pattern by ID")
     pats = json.load(open('data/patterns.json'))
@@ -120,6 +130,7 @@ def get_pattern_by_id(): # GET /patterns/get-named?id=xyz
         return json.dumps({"success": False, "error": "Pattern not found"})
 
 @app.route('/patterns/get')
+@cross_origin()
 def get_patterns(): # GET /patterns/get
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 50))
@@ -141,6 +152,7 @@ def get_patterns(): # GET /patterns/get
     })
 
 @app.route('/patterns/search')
+@cross_origin()
 def search_patterns(): # GET /patterns/search?q=term
     print("Searching patterns")
     r = client.collections['patterns'].documents.search({
@@ -157,6 +169,7 @@ def search_patterns(): # GET /patterns/search?q=term
     }, indent=4)
 
 @app.route('/run')
+@cross_origin()
 def run(): # GET /run
     print("Running simulation")
     message_queue.put({"type": "stop"})
@@ -167,12 +180,14 @@ def run(): # GET /run
     return jsonify(success=True, status="Simulation started")
 
 @app.route('/stop')
+@cross_origin()
 def stop(): # GET /stop
     print("Stopping simulation")
     message_queue.put({"type": "stop"})
     return jsonify(success=True, status="Simulation stopped")
 
 @app.route('/translate', methods=['POST'])
+@cross_origin()
 def translate(): # POST /translate
     data = request.get_json()
     intype = data.get('from')
@@ -251,7 +266,7 @@ autofocus = False
 # Function to run the WebSocket server and process messages from the queue
 async def websocket_server(verbose=False):
     global camera_pos, interval, client, timer_start
-    start_server = websockets.serve(handle_websocket, "0.0.0.0", port+1)
+    start_server = websockets.serve(handle_websocket, "0.0.0.0", port+1, origins=None)
     await start_server
     print("Started WebSocket server on port "+str(port+1))
 
