@@ -32,7 +32,7 @@ def get_srnd_cells(gscXY, gscIsNew, gscMasterGrid):
     gscNewChunks = {}
     for gscPosition in ((-1, 1), (0, 1), (1, 1), (-1, 0), (1, 0), (-1, -1), (0, -1), (1, -1)): #iterates over all 8 surrounding cells
         #finds the relative position of one of the cells surrounding the chosen cell
-        gscOuterCell = get_rltv_position(gscX + gscPosition[0], gscY + gscPosition[1])
+        gscOuterCell = get_rltv_position(gscX + gscPosition[0], gscY + gscPosition[1]) #TODO instead of gsc() receiving absolute position, receive relative and do this calculation using modulus and such.
         try:
             gscOutput.append(gscMasterGrid[gscOuterCell[0]][gscOuterCell[1]][gscOuterCell[2]])
         except KeyError:
