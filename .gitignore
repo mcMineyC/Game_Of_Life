@@ -2,4 +2,7 @@ __pycache__
 glider.png
 *.o
 *.so
+*.exe
 remote_life
+runner/grid_patterns
+.vscode
