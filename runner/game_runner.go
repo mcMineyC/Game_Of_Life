@@ -1,7 +1,11 @@
-// TODO package desccription
+// Package cgolrunner is a program for computing Conway's Game of Life using bitwise parallel addition.
+//
+// The game grid is divided into 1x64 horizontal rows of cells called chunks.
+// The grid is stored as type map[Coord]uint64. Each bit of the uint64 word represents the
+// state of each cell in the chunk. Only chunks with live cells are stored in the map.
+//
+// This package also contains functions to print the grid and convert its data to rle.
 package cgolrunner
-
-import "fmt"
 
 // Coord structs are used as map keys containing the XY coordinates for the uint64 word chunks
 type Coord struct {
@@ -14,9 +18,11 @@ type Coord struct {
 // Only the chunks that contain live cells are stored.
 var gridA, gridB map[Coord]uint64
 
-// GridIn and GridOut use pointer swapping to minimize memory writes. Each points to either gridA or gridB.
+// The NextGen function reads from GridIn and writes to GridOut.
+// Pointer swapping is used between generations via SwapGrids() to minimize memory writes.
 var GridIn, GridOut *map[Coord]uint64 = &gridA, &gridB
 
+// wordShift contains instructions to get the neighboring chunk and bit shift it as necessary.
 type wordShift struct {
 	// yPos is the relative y position of the neighboring chunk.
 	yPos int
@@ -24,34 +30,32 @@ type wordShift struct {
 	shift func(Coord) (uint64, Coord)
 }
 
-// leftShift returns the word at myPos shifted 1 bit to the left.
-// It fills the empty bit using the leftmost bit of the chunk to the right.
-// Iff this chunk is not present, the chunk's Coord is returned.
+// leftShift does two things: (1) It returns the word at myPos shifted 1 bit to the left.
+// (2) It returns the Coord of the chunk on the right if this chunk doesn't exist.
 func leftShift(myPos Coord) (word uint64, newChunk Coord) {
-	sideCoord := Coord{myPos.X + 1, myPos.Y}
-	sideWord, exists := (*GridIn)[sideCoord]
-	if !exists {
+	sideCoord := Coord{myPos.X + 1, myPos.Y} // Get the Coord of chunk on the right.
+	sideWord, exists := (*GridIn)[sideCoord] // Get the word of this chunk and it's existence state.
+	if !exists {                             // Return the sideCoord value if the chunk doesn't exist.
 		newChunk = sideCoord
 	}
-	word = ((*GridIn)[myPos] << 1) | (sideWord >> 63)
+	word = ((*GridIn)[myPos] << 1) | (sideWord >> 63) // Bit-shift the word at myPos 1 to the left, and include the leftmost bit of the right chunk.
 	return
 }
 
-// rightShift returns the word at myPos shifted 1 bit to the right.
-// It fills the empty bit using the rightmost bit of the chunk to the left.
-// Iff this chunk is not present, the chunk's Coord is returned.
+// rightShift does two things: (1) It returns the word at myPos shifted 1 bit to the right.
+// (2) It returns the Coord of the chunk on the left if this chunk doesn't exist.
 func rightShift(myPos Coord) (word uint64, newChunk Coord) {
-	sideCoord := Coord{myPos.X - 1, myPos.Y}
-	sideWord, exists := (*GridIn)[sideCoord]
-	if !exists {
+	sideCoord := Coord{myPos.X - 1, myPos.Y} // Get the Coord of chunk on the left.
+	sideWord, exists := (*GridIn)[sideCoord] // Get the word of this chunk and it's existence state.
+	if !exists {                             // Return the sideCoord value if the chunk doesn't exist.
 		newChunk = sideCoord
 	}
-	word = ((*GridIn)[myPos] >> 1) | (sideWord << 63)
+	word = ((*GridIn)[myPos] >> 1) | (sideWord << 63) // Bit-shift the word at myPos 1 to the right, and include the rightmost bit of the left chunk.
 	return
 }
 
-// noShift acts as a filler function. It simply returns the word of the chunk at myPos.
-// Iff this chunk is not present, the chunk's Coord is returned.
+// leftShift does two things: (1) It returns the word at myPos (without shifting).
+// (2) It returns myPos if the chunk doesn't exist.
 func noShift(myPos Coord) (word uint64, newChunk Coord) {
 	word, exists := (*GridIn)[myPos]
 	if !exists {
@@ -83,16 +87,16 @@ func InitGrid(grid map[Coord]uint64) {
 	*GridOut = make(map[Coord]uint64)
 }
 
-// SwapGrids performs a pointer swap, then clears *GridOut.
+// SwapGrids performs a pointer swap on the grids, then clears *GridOut.
 func SwapGrids() {
 	GridIn, GridOut = GridOut, GridIn
 	*GridOut = make(map[Coord]uint64)
 }
 
-// NextGen reads *GridIn and writes the next generation to *GridOut
+// NextGen reads from *GridIn and writes the next generation to *GridOut
 func NextGen() {
 	// checkLater is a set of the Coords of all empty chunks bordering live chunks. These will be iterated over later to check for changes.
-	var checkLater = make(map[Coord]struct{}) // DEV note: change to global scope for efficient memory?
+	var checkLater = make(map[Coord]struct{})
 
 	// Iterate over live chunks. p means position and w means word.
 	for p, w := range *GridIn {
@@ -106,18 +110,17 @@ func NextGen() {
 
 			// Add Coord of neighboring chunk to checkLater if nonexistent.
 			if missing != (Coord{}) {
-				checkLater[missing] = struct{}{} // TODO optimize how the neighbor chunk is stored so it isn't called twice?
+				checkLater[missing] = struct{}{}
 			}
 
-			// add nw to the registers
+			// add nw to the parallel register
 			b3 = b3 ^ (b2 & b1 & nw)
 			b2 = b2 ^ (b1 & nw)
 			b1 = b1 ^ nw
-			fmt.Print()
 		}
 		// Apply Game Of Life rule (B3/S23) to neighbor count.
 		outputWord := (b1 | w) & b2 & ^b3
-		if outputWord != 0 {
+		if outputWord != 0 { // adds to *GridOut if it contains live cells
 			(*GridOut)[p] = outputWord
 		}
 	}
@@ -132,7 +135,7 @@ func NextGen() {
 			// Get new shifted word of neighbor.
 			nw, _ := nInfo.shift(Coord{p.X, p.Y + nInfo.yPos})
 
-			// add nw to the registers
+			// add nw to the parallel register
 			b3 = b3 ^ (b2 & b1 & nw)
 			b2 = b2 ^ (b1 & nw)
 			b1 = b1 ^ nw
@@ -140,8 +143,10 @@ func NextGen() {
 		}
 		// Apply Game Of Life rule (B3/S23) to neighbor count.
 		outputWord := b1 & b2 & ^b3
-		if outputWord != 0 {
+		if outputWord != 0 { // adds to *GridOut if it contains live cells
 			(*GridOut)[p] = outputWord
 		}
 	}
 }
+
+// TODO don't add corner neighbors to checkLater
